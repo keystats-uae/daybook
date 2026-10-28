@@ -1,6 +1,6 @@
 // Offline support: app files load from the network when online (so updates show up)
 // and from this cache when offline. Fonts are cached on first use.
-const CACHE = 'daybook-v2';
+const CACHE = 'daybook-v3';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', ev => {

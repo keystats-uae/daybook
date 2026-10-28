@@ -1276,7 +1276,13 @@ const Sync = {
   async api(url, opts = {}) {
     const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + this.token } });
     if (res.status === 401) { this.token = null; this.exp = 0; lsSet('daybook.gtoken', 'null'); throw Object.assign(new Error('signin'), { signin:true }); }
-    if (!res.ok) throw new Error(`Google Drive error ${res.status}`);
+    if (!res.ok) {
+      let reason = '', msg = '';
+      try { const j = await res.json(); reason = j.error?.errors?.[0]?.reason || j.error?.status || ''; msg = j.error?.message || ''; } catch {}
+      if (reason === 'accessNotConfigured' || /has not been used|is disabled/i.test(msg)) throw new Error('Google Drive API is off. Enable it in your Google Cloud project.');
+      if (reason === 'insufficientPermissions' || /insufficient/i.test(msg)) throw new Error('Drive access wasn’t allowed. Disconnect, then connect and tick the Drive box.');
+      throw new Error(`Google Drive error ${res.status}${msg ? ': ' + msg : ''}`);
+    }
     return res;
   },
   async findFile() {
