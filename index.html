@@ -155,13 +155,19 @@ kbd{font-family:inherit;font-size:12px;padding:1px 6px;border-radius:0;border:1p
 .t-note{color:var(--accent);background:var(--accent-soft)}
 .t-expense{color:var(--expense);background:var(--expense-soft)}
 .t-income{color:var(--income);background:var(--income-soft)}
+.t-save{color:var(--accent);background:var(--accent-soft)}
+.chip-save{color:var(--accent)}
+.goal-row{display:flex;align-items:center;padding-right:8px}
+.goal-row .cat-row{flex:1;min-width:0}
+.meter.done>span{background:var(--income)}
+.cat-status.done{color:var(--income);font-weight:500}
 .entry-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .entry-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .entry-meta{font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .entry-meta .ic{width:13px;height:13px}
 .dot{width:8px;height:8px;border-radius:0;display:inline-block;flex:none}
 .amt{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-.amt.out{color:var(--expense)} .amt.in{color:var(--income)}
+.amt.out{color:var(--expense)} .amt.in{color:var(--income)} .amt.sv{color:var(--text)}
 .empty{padding:28px 20px;text-align:center;color:var(--muted)}
 .empty strong{display:block;color:var(--text);font-weight:600;margin-bottom:4px}
 .empty .btn{margin-top:12px}
@@ -300,7 +306,7 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
   .nav a[aria-current="page"] .ic{background:var(--accent-soft);border-radius:0;width:44px;padding:3px 12px;height:26px}
   .lbl-long{display:none} .lbl-short{display:inline}
   .mobile-top{display:flex;justify-content:flex-end;align-items:center;padding:12px 12px 0 16px;gap:4px}
-  .nav-settings{display:none}
+  .nav-settings,.nav-timeline{display:none}
   main{padding:18px 16px calc(100px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(86px + env(safe-area-inset-bottom))}
   .stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -341,6 +347,7 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
 </svg>
 
@@ -350,8 +357,9 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
     <ul class="nav">
       <li><a href="#today" data-view="today"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Today</span></a></li>
       <li><a href="#notes" data-view="notes"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span></a></li>
-      <li><a href="#timeline" data-view="timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Timeline</span></a></li>
+      <li class="nav-timeline"><a href="#timeline" data-view="timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Timeline</span></a></li>
       <li><a href="#budget" data-view="budget"><svg class="ic" aria-hidden="true"><use href="#i-pie"/></svg><span>Budget</span></a></li>
+      <li><a href="#savings" data-view="savings"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span>Savings</span></a></li>
       <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span class="lbl-long">Subscriptions</span><span class="lbl-short">Subs</span></a></li>
       <li class="nav-settings"><a href="#settings" data-view="settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span>Settings</span></a></li>
     </ul>
@@ -362,6 +370,7 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
   <div>
     <header class="mobile-top">
       <a class="backup-pill" href="#settings"></a>
+      <a class="icon-btn" href="#timeline" aria-label="Timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></a>
       <a class="icon-btn" href="#settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></a>
     </header>
     <main id="main"></main>
@@ -380,7 +389,9 @@ const KEEP_DAILY = 7;
 const GOOGLE_CLIENT_ID = '66067900001-el8jii4c2qog07a7rcij1dc1jh4l8a8f.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const SYNC_FILE = 'daybook-sync.json';
-const SYNCED = ['entries', 'subs', 'categories'];
+const SYNCED = ['entries', 'subs', 'categories', 'goals'];
+const KNOWN_KEYS = new Set(['v', 'settings', 'categories', 'entries', 'subs', 'goals', 'deleted']);
+const SAVE_WORD = /^(save|saved|saving|savings)$/i;
 const CURRENCIES = ['USD','EUR','GBP','AED','SAR','QAR','KWD','BHD','OMR','EGP','JOD','TRY','INR','PKR','CAD','AUD','CHF','JPY'];
 const CAT_COLORS = ['#C2410C','#0F766E','#7C3AED','#B45309','#BE185D','#15803D','#2563EB','#9333EA','#64748B','#0E7490','#A16207'];
 const DEFAULT_CATS = [['food','Food'],['transport','Transport'],['housing','Housing'],['bills','Bills'],['shopping','Shopping'],['health','Health'],['fun','Fun'],['subscriptions','Subscriptions'],['other','Other']];
@@ -450,6 +461,7 @@ function freshState() {
     categories: DEFAULT_CATS.map(([id, name], i) => ({ id, name, budget:0, color:CAT_COLORS[i % CAT_COLORS.length] })),
     entries: [],
     subs: [],
+    goals: [],
     deleted: {},
   };
 }
@@ -462,8 +474,11 @@ function normalize(s) {
     categories: Array.isArray(s.categories) && s.categories.length ? s.categories : f.categories,
     entries: Array.isArray(s.entries) ? s.entries.filter(e => e && e.id && e.type) : [],
     subs: Array.isArray(s.subs) ? s.subs.filter(x => x && x.id) : [],
+    goals: Array.isArray(s.goals) ? s.goals.filter(x => x && x.id) : [],
     deleted: s.deleted && typeof s.deleted === 'object' ? s.deleted : {},
   };
+  // Keep data written by newer versions so an older device never drops it while syncing.
+  for (const k of Object.keys(s)) if (!KNOWN_KEYS.has(k)) out[k] = s[k];
   if (!out.categories.some(c => c.id === 'other')) out.categories.push({ id:'other', name:'Other', budget:0, color:'#64748B' });
   return out;
 }
@@ -522,6 +537,7 @@ function applyMerged(m) {
   render();
   Backup.schedule();
 }
+const goalById = id => state.goals.find(g => g.id === id);
 const catById = id => state.categories.find(c => c.id === id) || state.categories.find(c => c.id === 'other');
 const subById = id => state.subs.find(s => s.id === id);
 
@@ -549,7 +565,9 @@ function analyze(raw) {
   const words = text.split(/\s+/).filter(Boolean);
   const plain = words.map((w, i) => [w, i]).filter(([w]) => !w.startsWith('#'));
   let hit = null;
-  for (const pos of [plain.length - 1, 0]) {
+  const saveIntent = SAVE_WORD.test(plain[0]?.[0] || '');
+  // "save 500 car": the amount can follow the word "save".
+  for (const pos of saveIntent ? [1, plain.length - 1] : [plain.length - 1, 0]) {
     const it = plain[pos]; if (!it) continue;
     const a = amountOf(it[0]);
     // "meeting at 3", "chapter 12", "page 40" are notes, not money.
@@ -560,28 +578,40 @@ function analyze(raw) {
   const rest = words.filter((w, i) => (!hit || i !== hit.i) && !w.startsWith('#')).join(' ');
   const lower = rest.toLowerCase();
   const isMoney = !!hit && hit.value > 0 && words.length <= 10;
-  const guessType = hit?.sign === '+' ? 'income' : hit?.sign === '-' ? 'expense' : INCOME_RE.test(lower) ? 'income' : 'expense';
+  const guessType = saveIntent && state.goals.length && !hit?.sign ? 'save'
+    : hit?.sign === '+' ? 'income' : hit?.sign === '-' ? 'expense' : INCOME_RE.test(lower) ? 'income' : 'expense';
   return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType };
+}
+function guessGoal(lower, tags) {
+  const norm = s => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  for (const t of tags) { const g = state.goals.find(g => norm(g.name).startsWith(norm(t))); if (g) return g.id; }
+  const words = lower.split(/\s+/).filter(w => w.length > 2 && !SAVE_WORD.test(w) && !/^(for|the|into|towards?)$/.test(w));
+  const g = state.goals.find(g => words.some(w => g.name.toLowerCase().includes(w)));
+  return (g || state.goals[0])?.id || null;
 }
 
 /* ---------- capture state ---------- */
-let draft = '', capType = null, capCat = null;
+let draft = '', capType = null, capCat = null, capGoal = null;
 function preview() {
   const t = draft.trim(); if (!t) return null;
   const a = analyze(t);
   const type = capType || (a.isMoney ? a.guessType : 'note');
   if (type === 'note') return { type, text: t, tags: a.tags };
+  if (type === 'save') { const goal = capGoal || guessGoal(a.lower, a.tags); return { type, text: goalById(goal)?.name || 'Savings', amount: a.amount, goal, tags: a.tags }; }
   const label = a.amount != null ? (a.rest || (type === 'income' ? 'Income' : 'Expense')) : t.replace(TAG_RE, '').trim();
   return { type, text: label, amount: a.amount, cat: type === 'expense' ? (capCat || guessCat(a.lower, a.tags)) : null, tags: a.tags };
 }
-const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'] };
+const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'], save:['save','Saving'] };
+const goalOptions = sel => state.goals.map(g => `<option value="${esc(g.id)}"${g.id === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
+const signed = (n, plus = true) => (n < 0 ? '−' : plus ? '+' : '') + money(Math.abs(n));
 function previewHTML(p) {
   if (!p) return '';
   const [ic, label] = TYPE_META[p.type];
   let h = `<button type="button" class="chip chip-${p.type}" data-act="cap-type" aria-label="Saving as ${label}. Change type">${icon(ic)}${label}<span class="chip-swap" aria-hidden="true">· change</span></button>`;
   if (p.type === 'expense') h += `<label class="sr-only" for="cap-cat">Category</label><select id="cap-cat" class="mini-select" data-change="cap-cat">${catOptions(p.cat)}</select>`;
+  if (p.type === 'save') h += `<label class="sr-only" for="cap-goal">Goal</label><select id="cap-goal" class="mini-select" data-change="cap-goal">${goalOptions(p.goal)}</select>`;
   if (p.type !== 'note') h += p.amount > 0
-    ? `<span class="cap-amt">${p.type === 'income' ? '+' : '−'}${money(p.amount)}</span>`
+    ? `<span class="cap-amt">${p.type === 'expense' ? '−' : '+'}${money(p.amount)}</span>`
     : `<span class="cap-amt missing">Add an amount, like “lunch 12”</span>`;
   return h;
 }
@@ -596,11 +626,12 @@ function capSave() {
   const p = preview(); if (!p) return;
   if (p.type !== 'note' && !(p.amount > 0)) { toast('Add an amount first, like “lunch 12”.'); return; }
   const e = { id:uid(), type:p.type, text:p.text, amount:p.type === 'note' ? null : p.amount, cat:p.cat || null, tags:p.tags, ts:Date.now(), pinned:false };
+  if (p.type === 'save') e.goal = p.goal;
   state.entries.push(e);
-  draft = ''; capType = null; capCat = null;
+  draft = ''; capType = null; capCat = null; capGoal = null;
   save();
   const cap = $('#cap'); if (cap) cap.focus();
-  toast(e.type === 'note' ? 'Note saved' : `${e.type === 'income' ? 'Income' : 'Expense'} logged · ${money(e.amount)}`, {
+  toast(e.type === 'note' ? 'Note saved' : e.type === 'save' ? `Saved ${money(e.amount)} · ${e.text}` : `${e.type === 'income' ? 'Income' : 'Expense'} logged · ${money(e.amount)}`, {
     action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); save(); },
   });
 }
@@ -641,8 +672,11 @@ function entryItem(e, showDay) {
   if (e.pinned) meta.push(`${icon('pin')}<span>Pinned</span>`);
   meta.push(`<span>${showDay ? dayLabel(e.ts) + ', ' : ''}${timeOf(e.ts)}</span>`);
   if (e.type === 'expense') { const c = catById(e.cat); meta.push(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span><span>${esc(c.name)}</span>`); }
+  if (e.type === 'save') meta.push('<span>Savings</span>');
   if (e.type !== 'note') for (const t of e.tags || []) meta.push(`<span>#${esc(t)}</span>`);
-  const amt = e.type === 'note' ? '' : `<span class="amt ${e.type === 'income' ? 'in' : 'out'}">${e.type === 'income' ? '+' : '−'}${money(e.amount)}</span>`;
+  const amt = e.type === 'note' ? ''
+    : e.type === 'save' ? `<span class="amt sv">${signed(e.amount)}</span>`
+    : `<span class="amt ${e.type === 'income' ? 'in' : 'out'}">${e.type === 'income' ? '+' : '−'}${money(e.amount)}</span>`;
   return `<li><button class="entry" data-act="edit" data-id="${e.id}">
     <span class="entry-ic t-${e.type}">${icon(ic)}</span>
     <span class="entry-main"><span class="entry-text">${esc(e.text)}</span><span class="entry-meta">${meta.join('<span aria-hidden="true">·</span>')}</span></span>
@@ -845,6 +879,54 @@ function vSubs() {
   ${others.length ? `<details class="more"><summary>Paused & cancelled (${others.length})</summary><ul class="list card" style="margin-top:8px">${others.map(subRow).join('')}</ul></details>` : ''}`;
 }
 
+function vSavings() {
+  const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const savedBy = {};
+  let total = 0, month = 0;
+  for (const e of state.entries) if (e.type === 'save') {
+    savedBy[e.goal] = (savedBy[e.goal] || 0) + e.amount;
+    total += e.amount;
+    if (e.ts >= monthStart) month += e.amount;
+  }
+  const goals = [...state.goals].sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const toGo = goals.reduce((t, g) => t + Math.max(0, (g.target || 0) - (savedBy[g.id] || 0)), 0);
+  const recent = state.entries.filter(e => e.type === 'save').sort(byTsDesc).slice(0, 8);
+  return `
+  <header class="page-head"><h1 tabindex="-1">Savings</h1>
+    <button class="btn primary" data-act="goal-add">${icon('plus')}Goal</button></header>
+  <section class="stats" aria-label="Totals">
+    ${stat('Saved', money(total))}
+    ${stat('This month', signed(month, false), '', month < 0)}
+    ${stat('To go', money(toGo))}
+  </section>
+  <section><h2>Goals</h2>
+    ${goals.length ? `<ul class="list card">${goals.map(g => goalRow(g, savedBy[g.id] || 0)).join('')}</ul>`
+      : `<div class="card empty">No goals yet</div>`}
+  </section>
+  ${recent.length ? `<section><h2>Recent</h2><ul class="list card">${recent.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}`;
+}
+function goalRow(g, saved) {
+  const pct = g.target > 0 ? saved / g.target * 100 : 0;
+  const done = g.target > 0 && saved >= g.target;
+  const left = (g.target || 0) - saved;
+  let status = '';
+  if (done) status = `<div class="cat-status done">${icon('check')}Reached</div>`;
+  else if (g.target > 0 && g.date) {
+    const days = daysUntil(g.date);
+    const dateTxt = parseYmd(g.date).toLocaleDateString(undefined, { month:'short', year:'numeric' });
+    status = days < 0
+      ? `<div class="cat-status warn">${icon('alert')}${money(left)} to go · was due ${dateTxt}</div>`
+      : `<div class="cat-status">${money(left / Math.max(1, Math.ceil(days / 30.44)))} / month to reach it by ${dateTxt}</div>`;
+  } else if (g.target > 0) status = `<div class="cat-status">${money(left)} to go</div>`;
+  return `<li class="goal-row">
+    <button class="cat-row" data-act="goal-move" data-id="${esc(g.id)}" aria-label="${esc(g.name)}: add or take out money">
+      <div class="cat-top"><span class="cat-name">${esc(g.name)}</span><span class="cat-nums"><strong>${money(saved)}</strong>${g.target > 0 ? ` of ${money(g.target)}` : ''}</span></div>
+      ${g.target > 0 ? `<div class="meter${done ? ' done' : ''}" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(Math.max(pct, 0), 100))}"><span style="width:${Math.min(Math.max(pct, 0), 100)}%"></span></div>` : ''}
+      ${status}
+    </button>
+    <button class="icon-btn" data-act="goal-edit" data-id="${esc(g.id)}" aria-label="Edit ${esc(g.name)}">${icon('edit')}</button></li>`;
+}
+
 function vSettings() {
   const t = state.settings.theme;
   return `
@@ -909,7 +991,7 @@ function bannerHTML() {
 }
 
 /* ---------- render & routing ---------- */
-const VIEWS = { today:vToday, notes:vNotes, timeline:vTimeline, budget:vBudget, subs:vSubs, settings:vSettings };
+const VIEWS = { today:vToday, notes:vNotes, timeline:vTimeline, budget:vBudget, savings:vSavings, subs:vSubs, settings:vSettings };
 let view = 'today';
 const main = $('#main');
 function render() {
@@ -984,8 +1066,74 @@ function openDialog({ title, body, submit = 'Save', extra = '', onSubmit, submit
 const formErr = (form, msg) => { $('.dlg-err', form).textContent = msg; return false; };
 const parseTags = s => [...new Set(String(s || '').split(/[\s,]+/).map(t => t.replace(/^#/, '').toLowerCase()).filter(Boolean))];
 
+function editGoal(id) {
+  const g = id ? goalById(id) : null;
+  const form = openDialog({
+    title: g ? 'Edit goal' : 'New goal',
+    submit: g ? 'Save' : 'Add',
+    body: `<label class="field"><span>Name</span><input name="name" value="${esc(g?.name || '')}" placeholder="Emergency fund, car, travel…" required autocomplete="off"></label>
+      <div class="field-row"><label class="field"><span>Target (${esc(state.settings.currency)})</span><input name="target" type="number" step="1" min="0" inputmode="decimal" value="${g?.target || ''}" placeholder="Optional"></label>
+        <label class="field"><span>By</span><input name="date" type="date" value="${g?.date || ''}"></label></div>
+      ${g ? '' : `<label class="field"><span>Already saved</span><input name="start" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>`}`,
+    extra: g ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
+    onSubmit(fd, form) {
+      const name = String(fd.get('name')).trim(), target = parseFloat(fd.get('target')) || 0, date = fd.get('date') || null;
+      if (!name) return formErr(form, 'Give it a name.');
+      if (target < 0) return formErr(form, 'The target can’t be negative.');
+      if (g) Object.assign(g, { name, target, date });
+      else {
+        const ng = { id:uid(), name, target, date, ts:Date.now() };
+        state.goals.push(ng);
+        const start = parseFloat(fd.get('start')) || 0;
+        if (start > 0) state.entries.push({ id:uid(), type:'save', text:name, amount:start, goal:ng.id, tags:[], ts:Date.now(), pinned:false });
+      }
+      save(); toast(g ? 'Saved' : `${name} added`);
+    },
+  });
+  const del = $('[data-del]', form);
+  if (del) del.onclick = () => {
+    if (!confirm(`Delete “${g.name}”? Its deposits stay in your Timeline.`)) return;
+    const idx = state.goals.indexOf(g);
+    state.goals.splice(idx, 1); dlg.close(); save();
+    toast(`${g.name} deleted`, { action:'Undo', onAction() { state.goals.splice(idx, 0, g); save(); } });
+  };
+}
+// Put money into a goal, take it out, or edit an existing saving entry.
+function moveDialog(goalId, e) {
+  if (!state.goals.length) { editGoal(); return; }
+  const g = goalById(goalId) || state.goals[0];
+  const out = e ? e.amount < 0 : false;
+  const when = new Date(e ? e.ts : Date.now());
+  const radio = (v, label, ic, on) => `<label><input type="radio" name="dir" value="${v}"${on ? ' checked' : ''}><span>${icon(ic)}${label}</span></label>`;
+  const form = openDialog({
+    title: e ? 'Edit saving' : esc(g.name),
+    submit: 'Save',
+    body: `<fieldset class="type-seg"><legend class="sr-only">Direction</legend>${radio('in', 'Put in', 'in', !out)}${radio('out', 'Take out', 'out', out)}</fieldset>
+      <div class="field-row"><label class="field"><span>Amount (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e ? Math.abs(e.amount) : ''}" required></label>
+        <label class="field"><span>Goal</span><select name="goal">${goalOptions(g.id)}</select></label></div>
+      <label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${ymd(when)}T${pad(when.getHours())}:${pad(when.getMinutes())}" required></label>`,
+    extra: e ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
+    onSubmit(fd, form) {
+      const amount = parseFloat(fd.get('amount')), ts = new Date(fd.get('ts')).getTime(), goal = fd.get('goal');
+      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
+      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
+      const value = fd.get('dir') === 'out' ? -amount : amount, name = goalById(goal)?.name || 'Savings';
+      if (e) Object.assign(e, { amount:value, goal, ts, text:name });
+      else state.entries.push({ id:uid(), type:'save', text:name, amount:value, goal, tags:[], ts, pinned:false });
+      save(); toast(`${value < 0 ? 'Took out' : 'Saved'} ${money(amount)} · ${name}`);
+    },
+  });
+  const del = $('[data-del]', form);
+  if (del) del.onclick = () => {
+    const idx = state.entries.indexOf(e);
+    state.entries.splice(idx, 1); dlg.close(); save();
+    toast('Entry deleted', { action:'Undo', onAction() { state.entries.splice(idx, 0, e); save(); } });
+  };
+}
+
 function editEntry(id) {
   const e = state.entries.find(x => x.id === id); if (!e) return;
+  if (e.type === 'save') { moveDialog(e.goal, e); return; }
   const d = new Date(e.ts);
   const local = `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const radio = (v) => { const [ic, l] = TYPE_META[v]; return `<label><input type="radio" name="type" value="${v}"${e.type === v ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
@@ -1463,12 +1611,15 @@ function eraseDialog() {
 const ACTIONS = {
   'cap-save': capSave,
   'cap-type'() {
-    const order = ['note', 'expense', 'income'];
+    const order = state.goals.length ? ['note', 'expense', 'income', 'save'] : ['note', 'expense', 'income'];
     const cur = preview()?.type || 'note';
-    capType = order[(order.indexOf(cur) + 1) % 3];
+    capType = order[(order.indexOf(cur) + 1) % order.length];
     updatePreview();
   },
   'edit': (el) => editEntry(el.dataset.id),
+  'goal-add': () => editGoal(),
+  'goal-edit': (el) => editGoal(el.dataset.id),
+  'goal-move': (el) => moveDialog(el.dataset.id),
   'note-save': noteSave,
   'nt-tag'(el) { nt.tag = nt.tag === el.dataset.v ? null : el.dataset.v; render(); },
   'sub-add': () => editSub(),
@@ -1504,12 +1655,13 @@ main.addEventListener('click', ev => {
 main.addEventListener('change', ev => {
   const k = ev.target.dataset.change;
   if (k === 'cap-cat') { capCat = ev.target.value; updatePreview(); }
+  if (k === 'cap-goal') { capGoal = ev.target.value; updatePreview(); }
   if (k === 'currency') { state.settings.currency = ev.target.value; save(); }
 });
 main.addEventListener('input', ev => {
   if (ev.target.id === 'cap') {
     draft = ev.target.value;
-    if (!draft.trim()) { capType = null; capCat = null; }
+    if (!draft.trim()) { capType = null; capCat = null; capGoal = null; }
     autoGrow(ev.target); updatePreview();
   } else if (ev.target.id === 'note-new') {
     noteDraft = ev.target.value;
