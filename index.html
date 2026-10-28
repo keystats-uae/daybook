@@ -376,6 +376,11 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
 const STORE_KEY = 'daybook.v1';
 const KDF_ITERATIONS = 310000;
 const KEEP_DAILY = 7;
+// Google Drive sync. The client ID is public by design (it only names the app to Google).
+const GOOGLE_CLIENT_ID = '';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const SYNC_FILE = 'daybook-sync.json';
+const SYNCED = ['entries', 'subs', 'categories'];
 const CURRENCIES = ['USD','EUR','GBP','AED','SAR','QAR','KWD','BHD','OMR','EGP','JOD','TRY','INR','PKR','CAD','AUD','CHF','JPY'];
 const CAT_COLORS = ['#C2410C','#0F766E','#7C3AED','#B45309','#BE185D','#15803D','#2563EB','#9333EA','#64748B','#0E7490','#A16207'];
 const DEFAULT_CATS = [['food','Food'],['transport','Transport'],['housing','Housing'],['bills','Bills'],['shopping','Shopping'],['health','Health'],['fun','Fun'],['subscriptions','Subscriptions'],['other','Other']];
@@ -445,6 +450,7 @@ function freshState() {
     categories: DEFAULT_CATS.map(([id, name], i) => ({ id, name, budget:0, color:CAT_COLORS[i % CAT_COLORS.length] })),
     entries: [],
     subs: [],
+    deleted: {},
   };
 }
 function normalize(s) {
@@ -456,6 +462,7 @@ function normalize(s) {
     categories: Array.isArray(s.categories) && s.categories.length ? s.categories : f.categories,
     entries: Array.isArray(s.entries) ? s.entries.filter(e => e && e.id && e.type) : [],
     subs: Array.isArray(s.subs) ? s.subs.filter(x => x && x.id) : [],
+    deleted: s.deleted && typeof s.deleted === 'object' ? s.deleted : {},
   };
   if (!out.categories.some(c => c.id === 'other')) out.categories.push({ id:'other', name:'Other', budget:0, color:'#64748B' });
   return out;
@@ -464,10 +471,56 @@ let state;
 try { state = normalize(JSON.parse(localStorage.getItem(STORE_KEY))); }
 catch { state = freshState(); }
 
+// Change tracking for sync: every save stamps changed items with `u` (updated ms)
+// and records removed ones in `state.deleted`, so two devices can be merged safely.
+function snapshotOf(s) {
+  const m = new Map();
+  for (const k of SYNCED) for (const x of s[k]) { const { u, ...rest } = x; m.set(k + ':' + x.id, JSON.stringify(rest)); }
+  const { u, ...set } = s.settings;
+  m.set('settings', JSON.stringify(set));
+  return m;
+}
+let snap = snapshotOf(state);
+function stamp() {
+  const now = Date.now(), next = snapshotOf(state);
+  for (const k of SYNCED) for (const x of state[k]) {
+    const key = k + ':' + x.id;
+    if (snap.get(key) !== next.get(key)) { x.u = now; delete state.deleted[key]; }
+  }
+  if (snap.get('settings') !== next.get('settings')) state.settings.u = now;
+  for (const key of snap.keys()) if (key !== 'settings' && !next.has(key)) state.deleted[key] = now;
+  for (const [key, t] of Object.entries(state.deleted)) if (now - t > 180 * 864e5) delete state.deleted[key];
+  snap = next;
+}
+function mergeStates(a, b) {
+  const deleted = { ...a.deleted };
+  for (const [k, t] of Object.entries(b.deleted)) deleted[k] = Math.max(deleted[k] || 0, t);
+  const out = { v:1, settings: (b.settings.u || 0) > (a.settings.u || 0) ? b.settings : a.settings, deleted };
+  for (const k of SYNCED) {
+    // Remote order first and a fixed sort, so every device converges on identical data.
+    const m = new Map();
+    for (const x of b[k]) m.set(x.id, x);
+    for (const x of a[k]) { const cur = m.get(x.id); if (!cur || (x.u || 0) > (cur.u || 0)) m.set(x.id, x); }
+    out[k] = [...m.values()].filter(x => { const t = deleted[k + ':' + x.id]; return !(t && t >= (x.u || 0)); });
+    if (k !== 'categories') out[k].sort((x, y) => (x.ts || 0) - (y.ts || 0) || (x.id < y.id ? -1 : 1));
+  }
+  return normalize(out);
+}
+
 function save() {
+  stamp();
   if (!lsSet(STORE_KEY, JSON.stringify(state))) toast("Couldn't save in this browser. Download a backup from Settings now.");
   Backup.schedule();
+  Sync.schedule();
   render();
+}
+function applyMerged(m) {
+  state = m;
+  lsSet(STORE_KEY, JSON.stringify(state));
+  snap = snapshotOf(state);
+  applyTheme();
+  render();
+  Backup.schedule();
 }
 const catById = id => state.categories.find(c => c.id === id) || state.categories.find(c => c.id === 'other');
 const subById = id => state.subs.find(s => s.id === id);
@@ -796,6 +849,7 @@ function vSettings() {
   const t = state.settings.theme;
   return `
   <header class="page-head"><h1 tabindex="-1">Settings</h1></header>
+  ${syncCard()}
   <section class="card set-card" aria-labelledby="bk-h">
     <h3 id="bk-h">Backups</h3>
     ${backupBody()}
@@ -827,10 +881,10 @@ function backupBody() {
   const folderStep = B.supported
     ? `<div class="step ${folderDone ? 'done' : ''}"><span class="step-num">${folderDone ? icon('check') : '2'}</span><div class="step-body">
         <strong>Folder</strong>
-        <p>${folderDone ? esc(B.handle.name) : 'Pick one inside OneDrive'}</p>
+        <p>${folderDone ? esc(B.handle.name) : 'Pick one inside Google Drive'}</p>
         <button class="btn ${folderDone ? 'secondary small' : 'primary'}" data-act="bk-folder" ${pwDone ? '' : 'disabled'}>${icon('folder')}${folderDone ? 'Change folder' : 'Choose folder'}</button>
       </div></div>`
-    : `<div class="note-box">${icon('alert')}<span>Auto backups need Edge or Chrome. Use Download instead.</span></div>`;
+    : Sync.st.on ? '' : `<div class="note-box">${icon('alert')}<span>Auto backups need Edge or Chrome. Use Download instead.</span></div>`;
   return `${status}
     <div class="step ${pwDone ? 'done' : ''}"><span class="step-num">${pwDone ? icon('check') : '1'}</span><div class="step-body">
       <strong>Password</strong>
@@ -841,10 +895,15 @@ function backupBody() {
     ${B.status === 'ready' ? `<div class="btn-row" style="margin-top:6px"><button class="btn secondary small" data-act="bk-now">${icon('cloud')}Back up now</button></div>` : ''}`;
 }
 function bannerHTML() {
-  const B = Backup;
+  const B = Backup, S = Sync;
+  if (S.st.on && S.enabled) {
+    if (S.status === 'signin') return `<div class="banner">${icon('alert')}<p>Sync paused</p><button class="btn small primary" data-act="sync-signin">Sign in</button></div>`;
+    if (S.status === 'locked') return `<div class="banner">${icon('lock')}<p>Enter your password to sync</p><button class="btn small primary" data-act="sync-unlock">Unlock</button></div>`;
+    if (S.status === 'nokey') return `<div class="banner">${icon('lock')}<p>Set a password to sync</p><button class="btn small primary" data-act="sync-setpw">Set</button></div>`;
+  }
   if (B.status === 'needs-permission') return `<div class="banner">${icon('alert')}<p>Backup paused</p><button class="btn small primary" data-act="bk-reconnect">Allow</button></div>`;
   if (B.status === 'error') return `<div class="banner">${icon('alert')}<p>Backup failed</p><a class="btn small secondary" href="#settings">Details</a></div>`;
-  if ((B.status === 'no-password' || B.status === 'no-folder') && state.entries.length + state.subs.length >= 3)
+  if (!S.st.on && (B.status === 'no-password' || B.status === 'no-folder' || B.status === 'manual') && state.entries.length + state.subs.length >= 3)
     return `<div class="banner info">${icon('cloud-off')}<p>Backups are off</p><a class="btn small primary" href="#settings">Set up</a></div>`;
   return '';
 }
@@ -863,9 +922,14 @@ function render() {
   renderChrome();
 }
 function renderChrome() {
-  const B = Backup;
+  const B = Backup, S = Sync;
   let cls = '', ic = 'cloud-off', txt = 'Backups off';
-  if (B.status === 'ready') { cls = 'ok'; ic = 'cloud'; txt = B.lastAt ? `Backed up ${ago(B.lastAt)}` : 'Backups on'; }
+  if (S.st.on && S.enabled) {
+    const bad = { signin:'Sign in to sync', locked:'Password needed', nokey:'Set a password', error:'Sync failed' }[S.status];
+    if (bad) { cls = 'warn'; ic = 'alert'; txt = bad; }
+    else { cls = 'ok'; ic = 'cloud'; txt = S.status === 'syncing' ? 'Syncing…' : S.st.lastAt ? `Synced ${ago(S.st.lastAt)}` : 'Sync on'; }
+  }
+  else if (B.status === 'ready') { cls = 'ok'; ic = 'cloud'; txt = B.lastAt ? `Backed up ${ago(B.lastAt)}` : 'Backups on'; }
   else if (B.status === 'needs-permission' || B.status === 'error') { cls = 'warn'; ic = 'alert'; txt = B.status === 'error' ? 'Backup failed' : 'Reconnect backup'; }
   else if (B.status === 'manual') { txt = 'Manual backups'; }
   for (const p of $$('.backup-pill')) { p.className = 'backup-pill ' + cls; p.innerHTML = icon(ic) + `<span>${txt}</span>`; p.setAttribute('aria-label', `Backup status: ${txt}. Open settings`); }
@@ -1119,6 +1183,7 @@ const Backup = {
     try { await idbSet('key', keyInfo); } catch {}
     await this.refresh();
     if (this.status === 'ready') this.run();
+    Sync.schedule(0);
   },
   async chooseFolder() {
     let h;
@@ -1147,6 +1212,173 @@ async function pruneDaily(dir) {
   for await (const [name, h] of dir.entries()) if (h.kind === 'file' && /^daybook-\d{4}-\d{2}-\d{2}\.json$/.test(name)) names.push(name);
   names.sort().reverse();
   for (const n of names.slice(KEEP_DAILY)) await dir.removeEntry(n);
+}
+
+/* ---------- Google Drive sync ---------- */
+// One encrypted file in the app's hidden Drive folder. Each run: download, merge, upload.
+async function decryptWithKey(keyInfo, obj) {
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:unb64(obj.iv) }, keyInfo.key, unb64(obj.data));
+  return JSON.parse(td.decode(pt));
+}
+const Sync = {
+  enabled: !!GOOGLE_CLIENT_ID && location.protocol === 'https:',
+  st: (() => { try { return JSON.parse(lsGet('daybook.sync')) || {}; } catch { return {}; } })(),
+  token: null, exp: 0, status: 'idle', error: '', locked: null,
+  timer: null, running: false, again: false,
+  persist() { lsSet('daybook.sync', JSON.stringify(this.st)); },
+  tokenOk() { return !!this.token && this.exp > Date.now() + 30000; },
+  setStatus(s) { this.status = s; renderChrome(); if (view === 'settings') render(); },
+  loadToken() {
+    try { const t = JSON.parse(lsGet('daybook.gtoken')); if (t && t.exp > Date.now()) { this.token = t.token; this.exp = t.exp; } } catch {}
+  },
+  redirectUri() { return location.origin + location.pathname.replace(/index\.html$/, ''); },
+  signIn(silent) {
+    const nonce = uid();
+    lsSet('daybook.oauthState', nonce);
+    const p = new URLSearchParams({ client_id:GOOGLE_CLIENT_ID, redirect_uri:this.redirectUri(), response_type:'token', scope:DRIVE_SCOPE, include_granted_scopes:'true', state:nonce });
+    if (silent) p.set('prompt', 'none');
+    location.assign('https://accounts.google.com/o/oauth2/v2/auth?' + p);
+  },
+  // Google sends the token back in the URL hash; read it, then clean the URL.
+  handleRedirect() {
+    const h = location.hash.slice(1);
+    if (!/(^|&)(access_token|error)=/.test(h)) return;
+    const p = new URLSearchParams(h);
+    const expected = lsGet('daybook.oauthState');
+    history.replaceState(null, '', location.pathname + location.search + '#today');
+    if (!expected || p.get('state') !== expected) return;
+    lsSet('daybook.oauthState', '');
+    if (p.get('error')) { if (this.st.on) this.status = 'signin'; if (p.get('error') === 'access_denied') toast('Google access was declined'); return; }
+    if (!(p.get('scope') || '').includes('drive.appdata')) { toast('Allow Google Drive access to sync'); return; }
+    this.token = p.get('access_token');
+    this.exp = Date.now() + (Number(p.get('expires_in')) || 3600) * 1000;
+    lsSet('daybook.gtoken', JSON.stringify({ token:this.token, exp:this.exp }));
+    if (!this.st.on) { this.st.on = true; this.persist(); }
+  },
+  // Token expired: bounce through Google silently, at most once per 10 minutes, never over unsaved typing.
+  maybeSilent() {
+    if (!this.enabled || !this.st.on || this.tokenOk()) return;
+    const last = Number(lsGet('daybook.silentAt')) || 0;
+    if (Date.now() - last < 10 * 60e3 || draft.trim() || noteDraft.trim() || dlg.open) { this.setStatus('signin'); return; }
+    lsSet('daybook.silentAt', String(Date.now()));
+    this.signIn(true);
+  },
+  start() {
+    if (!this.enabled || !this.st.on) return;
+    if (this.tokenOk()) this.run(); else this.maybeSilent();
+    setInterval(() => { if (!document.hidden) { if (this.tokenOk()) this.run(); else this.maybeSilent(); } }, 60000);
+  },
+  schedule(ms = 2500) {
+    if (!this.enabled || !this.st.on) return;
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.run(), ms);
+  },
+  async api(url, opts = {}) {
+    const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + this.token } });
+    if (res.status === 401) { this.token = null; this.exp = 0; lsSet('daybook.gtoken', 'null'); throw Object.assign(new Error('signin'), { signin:true }); }
+    if (!res.ok) throw new Error(`Google Drive error ${res.status}`);
+    return res;
+  },
+  async findFile() {
+    const q = encodeURIComponent(`name='${SYNC_FILE}'`);
+    const r = await (await this.api(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)&pageSize=10`)).json();
+    return r.files?.[0]?.id || null;
+  },
+  async download(id) { return (await this.api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json(); },
+  async upload(id, obj) {
+    const body = JSON.stringify(obj);
+    if (id) {
+      await this.api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body });
+      return id;
+    }
+    const b = 'daybook' + uid();
+    const meta = JSON.stringify({ name:SYNC_FILE, parents:['appDataFolder'] });
+    const multipart = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
+    const r = await (await this.api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method:'POST', headers:{ 'Content-Type':`multipart/related; boundary=${b}` }, body:multipart })).json();
+    return r.id;
+  },
+  async run() {
+    if (!this.enabled || !this.st.on) return;
+    if (this.running) { this.again = true; return; }
+    if (!this.tokenOk()) { this.setStatus('signin'); return; }
+    this.running = true;
+    this.setStatus('syncing');
+    try {
+      let id = this.st.fileId || await this.findFile();
+      let remote = null;
+      if (id) {
+        try { remote = await this.download(id); }
+        catch (e) { if (e.signin) throw e; id = await this.findFile(); remote = id ? await this.download(id) : null; }
+      }
+      if (remote) {
+        let data = null;
+        if (Backup.key && b64(Backup.keyInfo.salt) === remote.kdf?.salt) {
+          try { data = normalize(await decryptWithKey(Backup.keyInfo, remote)); } catch {}
+        }
+        if (!data) { this.locked = remote; this.setStatus('locked'); return; }
+        const merged = mergeStates(state, data);
+        if (JSON.stringify(merged) !== JSON.stringify(state)) applyMerged(merged);
+        if (JSON.stringify(state) !== JSON.stringify(data)) id = await this.upload(id, await encryptState(Backup.keyInfo));
+      } else {
+        if (!Backup.key) { this.setStatus('nokey'); return; }
+        id = await this.upload(null, await encryptState(Backup.keyInfo));
+      }
+      this.st.fileId = id; this.st.lastAt = Date.now(); this.persist();
+      this.locked = null; this.error = '';
+      this.setStatus('ok');
+    } catch (e) {
+      if (e.signin) this.setStatus('signin');
+      else { this.error = e.message || String(e); this.setStatus('error'); }
+    } finally {
+      this.running = false;
+      if (this.again) { this.again = false; this.schedule(500); }
+    }
+  },
+  disconnect() {
+    if (this.token) fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(this.token), { method:'POST' }).catch(() => {});
+    this.st = {}; this.persist();
+    this.token = null; this.exp = 0; lsSet('daybook.gtoken', 'null');
+    this.locked = null;
+    this.setStatus('idle');
+    toast('Sync turned off on this device');
+  },
+};
+function syncUnlockDialog() {
+  const remote = Sync.locked;
+  if (!remote) { Sync.run(); return; }
+  openDialog({
+    title: 'Unlock sync',
+    submit: 'Unlock',
+    body: `<label class="field"><span>Backup password from your other device</span><input name="pw" type="password" autocomplete="current-password" required></label>`,
+    async onSubmit(fd, form) {
+      let r;
+      try { r = await decryptBackup(remote, String(fd.get('pw'))); }
+      catch { return formErr(form, 'Wrong password. Use the one you set on your other device.'); }
+      Sync.locked = null;
+      await Backup.adoptKey(r.keyInfo);
+    },
+  });
+}
+function syncCard() {
+  const S = Sync;
+  if (!S.enabled) return '';
+  let body;
+  if (!S.st.on) {
+    body = `<p>Keep your phone and PC in step through Google Drive. Encrypted.</p>
+      <button class="btn primary" data-act="sync-connect">${icon('cloud')}Connect Google Drive</button>`;
+  } else {
+    const warn = (msg, act, label) => `<div class="status-line warn">${icon('alert')}<span style="flex:1">${msg}</span>${act ? `<button class="btn small primary" data-act="${act}">${label}</button>` : ''}</div>`;
+    const line = {
+      signin: warn('Signed out of Google', 'sync-signin', 'Sign in'),
+      locked: warn('Enter your backup password', 'sync-unlock', 'Unlock'),
+      nokey: warn('Set a backup password first', 'sync-setpw', 'Set password'),
+      error: warn(`Sync failed: ${esc(S.error)}`),
+    }[S.status] || `<div class="status-line ok">${icon('cloud')}${S.status === 'syncing' ? 'Syncing…' : S.st.lastAt ? `Synced ${ago(S.st.lastAt)}` : 'On'}</div>`;
+    body = `${line}<div class="btn-row">
+      <button class="btn secondary small" data-act="sync-now" ${S.tokenOk() && S.status !== 'syncing' ? '' : 'disabled'}>${icon('repeat')}Sync now</button>
+      <button class="btn ghost small" data-act="sync-disconnect">Disconnect</button></div>`;
+  }
+  return `<section class="card set-card" aria-labelledby="sy-h"><h3 id="sy-h">Sync</h3>${body}</section>`;
 }
 
 function passwordDialog() {
@@ -1249,6 +1481,12 @@ const ACTIONS = {
   'bk-folder': () => Backup.chooseFolder(),
   'bk-reconnect': () => Backup.reconnect(),
   async 'bk-now'(el) { el.classList.add('loading'); const ok = await Backup.run(); toast(ok ? 'Backed up' : 'Backup failed. See Settings.'); },
+  'sync-connect': () => Sync.signIn(false),
+  'sync-signin': () => Sync.signIn(false),
+  'sync-now': () => Sync.run(),
+  'sync-unlock': syncUnlockDialog,
+  'sync-setpw': passwordDialog,
+  'sync-disconnect': () => Sync.disconnect(),
   'download': downloadBackup,
   'restore'() { const f = $('#restore-file'); f.value = ''; f.click(); },
   'erase': eraseDialog,
@@ -1288,13 +1526,19 @@ document.addEventListener('keydown', ev => {
 $('#restore-file').addEventListener('change', ev => { const f = ev.target.files[0]; if (f) restoreFromFile(f); });
 $('#skip').addEventListener('click', () => $('#main h1')?.focus());
 window.addEventListener('hashchange', () => route(true));
-document.addEventListener('visibilitychange', () => { if (document.hidden && Backup.pending) Backup.run(); });
-window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = normalize(JSON.parse(ev.newValue)); render(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (Backup.pending) Backup.run(); }
+  else if (Sync.st.on) { if (Sync.tokenOk()) Sync.run(); else Sync.maybeSilent(); }
+});
+window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = normalize(JSON.parse(ev.newValue)); snap = snapshotOf(state); render(); } });
 setInterval(renderChrome, 60000);
 
 applyTheme();
+Sync.loadToken();
+Sync.handleRedirect();
 route(false);
 Backup.init();
+Sync.start();
 // Offline + installable only on the real https site, so local testing never serves stale files.
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
