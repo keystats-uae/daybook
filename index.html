@@ -75,8 +75,11 @@ p{margin:0 0 10px}
 .backup-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:0;font-size:13px;font-weight:500;text-decoration:none;color:var(--muted);background:var(--surface-2);min-height:34px;white-space:nowrap}
 .backup-pill .ic{width:16px;height:16px}
 .backup-pill.ok{color:var(--income);background:var(--income-soft)}
+.backup-pill[hidden]{display:none}
 .backup-pill.warn{color:var(--warn);background:var(--warn-soft)}
 .mobile-top{display:none}
+.top-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 8px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500}
+.top-link .ic{width:17px;height:17px}
 main{width:100%;max-width:760px;margin:0 auto;padding:44px 32px 96px}
 
 /* Type */
@@ -315,6 +318,10 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
 .pay-list{list-style:none;margin:-4px 0 14px;padding:0;font-size:14px}
 .pay-list li{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--border);padding:2px 0 2px 2px}
 .pay-list .amt{font-weight:500}
+a.cat-row{color:inherit;text-decoration:none}
+.row-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;min-height:44px}
+.row-main .amt{margin-left:auto}
+.goal-row .btn{margin-left:8px}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 
@@ -387,7 +394,7 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
       <li><a href="#budget" data-view="budget"><svg class="ic" aria-hidden="true"><use href="#i-pie"/></svg><span>Budget</span></a></li>
       <li><a href="#wallet" data-view="wallet"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg><span>Wallet</span></a></li>
       <li><a href="#savings" data-view="savings"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span>Savings</span></a></li>
-      <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span class="lbl-long">Subscriptions</span><span class="lbl-short">Subs</span></a></li>
+      <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span>Monthly</span></a></li>
       <li class="nav-settings"><a href="#settings" data-view="settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span>Settings</span></a></li>
     </ul>
     <div class="side-foot">
@@ -397,8 +404,8 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
   <div>
     <header class="mobile-top">
       <a class="backup-pill" href="#settings"></a>
-      <a class="icon-btn" href="#timeline" aria-label="Timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></a>
-      <a class="icon-btn" href="#settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></a>
+      <a class="top-link" href="#timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Timeline</a>
+      <a class="top-link" href="#settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg>Settings</a>
     </header>
     <main id="main"></main>
   </div>
@@ -433,7 +440,9 @@ const KEYWORDS = {
   fun: 'movie movies cinema game games concert trip travel hotel flight tickets party',
   subscriptions: 'netflix spotify youtube icloud subscription disney chatgpt claude prime shahid osn',
 };
-const INCOME_RE = /\b(salary|income|refund|bonus|paid me|freelance|dividend|cashback|payment received|got paid|wage|wages)\b/i;
+const INCOME_RE = /\b(salary|income|refund|bonus|paid me|freelance|dividend|cashback|payment received|got paid|wage|wages|received|earned)\b/i;
+const CUR_WORD = /^(aed|dhs?|dirhams?|usd|dollars?|bucks|eur|euros?|gbp|pounds?|sar|riyals?|qar|kwd|bhd|omr|egp|inr|rs|rupees?|[$€£])\.?$/i;
+const MONEY_VERB = /\b(paid|pay|spent|spend|bought|buy|received|receive|got|earned|lent|loaned|borrowed|owes?|sent|put|moved|transferred|cost|costs|save|saved|saving|savings)\b/i;
 const CYCLES = { weekly:'Weekly', monthly:'Monthly', quarterly:'Every 3 months', yearly:'Yearly' };
 const PER_MONTH = { weekly:52/12, monthly:1, quarterly:1/3, yearly:1/12 };
 
@@ -482,10 +491,22 @@ function money(n) {
 }
 
 /* ---------- state ---------- */
+// Pick the local currency from the time zone or language, so a new user doesn't start in dollars.
+function guessCurrency() {
+  const tz = { Dubai:'AED', Riyadh:'SAR', Qatar:'QAR', Kuwait:'KWD', Bahrain:'BHD', Muscat:'OMR', Cairo:'EGP', Amman:'JOD', Istanbul:'TRY', Kolkata:'INR', Calcutta:'INR', Karachi:'PKR', London:'GBP', Zurich:'CHF', Tokyo:'JPY', Toronto:'CAD', Vancouver:'CAD' };
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const city = zone.split('/').pop();
+    if (tz[city]) return tz[city];
+    if (zone.startsWith('Australia/')) return 'AUD';
+    if (zone.startsWith('Europe/')) return 'EUR';
+  } catch {}
+  return 'USD';
+}
 function freshState() {
   return {
     v: 1,
-    settings: { currency:'USD', theme:'auto', welcomed:false },
+    settings: { currency:guessCurrency(), theme:'auto', welcomed:false },
     categories: DEFAULT_CATS.map(([id, name], i) => ({ id, name, budget:0, color:CAT_COLORS[i % CAT_COLORS.length] })),
     entries: [],
     subs: [],
@@ -591,14 +612,20 @@ function balances() {
     if (e.type === 'transfer') { if (e.acct in b) b[e.acct] -= e.amount; if (e.to in b) b[e.to] += e.amount; }
     else if (e.acct in b && e.amount) b[e.acct] += e.type === 'income' ? e.amount : -e.amount;
   }
+  // Lending cash takes it out of the account; being paid back puts it in (and the reverse when borrowing).
+  for (const d of state.debts) if (d.acct in b) {
+    const paid = (d.pays || []).reduce((t, p) => t + p.amount, 0);
+    b[d.acct] += d.dir === 'in' ? paid - d.amount : d.amount - paid;
+  }
   return b;
 }
+const savingsTotal = () => state.goals.reduce((t, g) => t + (g.start || 0), 0) + state.entries.reduce((t, e) => t + (e.type === 'save' ? e.amount : 0), 0);
 const debtLeft = d => d.amount - (d.pays || []).reduce((t, p) => t + p.amount, 0);
 
 /* ---------- quick capture parsing ---------- */
 const TAG_RE = /#([\p{L}\p{N}_-]+)/gu;
 function amountOf(w) {
-  const m = w.match(/^([+-])?(?:[$€£¥₹]|aed|usd|eur|gbp|sar|qar|kwd)?([+-])?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(k)?$/i);
+  const m = w.match(/^([+-])?(?:[$€£¥₹]|aed|usd|eur|gbp|sar|qar|kwd)?([+-])?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(k)?(?:aed|dhs?|usd|eur|gbp|sar|qar|kwd|[$€£])?$/i);
   if (!m) return null;
   const value = parseFloat(m[3].replace(/,/g, '') + (m[4] ? '.' + m[4] : '')) * (m[5] ? 1000 : 1);
   return { sign: m[1] || m[2] || null, value };
@@ -616,12 +643,16 @@ function guessCat(lower, tags) {
 function analyze(raw) {
   const text = raw.trim();
   const tags = [...new Set([...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase()))];
-  const words = text.split(/\s+/).filter(Boolean);
+  // "Taxi 25 AED", "AED 25 taxi": currency words are dropped so the amount is found.
+  const words = text.split(/\s+/).filter(Boolean).filter(w => !CUR_WORD.test(w));
   const plain = words.map((w, i) => [w, i]).filter(([w]) => !w.startsWith('#'));
+  const saveAt = plain.findIndex(([w]) => SAVE_WORD.test(w));
+  const saveIntent = saveAt >= 0;
+  // Amounts usually sit at the end or the start; "received 300 from Ali" also allows the middle.
+  const order = [...(saveIntent ? [saveAt + 1] : []), plain.length - 1, 0];
+  if (saveIntent || MONEY_VERB.test(text)) for (let i = 1; i < plain.length - 1; i++) order.push(i);
   let hit = null;
-  const saveIntent = SAVE_WORD.test(plain[0]?.[0] || '');
-  // "save 500 car": the amount can follow the word "save".
-  for (const pos of saveIntent ? [1, plain.length - 1] : [plain.length - 1, 0]) {
+  for (const pos of order) {
     const it = plain[pos]; if (!it) continue;
     const a = amountOf(it[0]);
     // "meeting at 3", "chapter 12", "page 40" are notes, not money.
@@ -631,10 +662,22 @@ function analyze(raw) {
   }
   const rest = words.filter((w, i) => (!hit || i !== hit.i) && !w.startsWith('#')).join(' ');
   const lower = rest.toLowerCase();
-  const isMoney = !!hit && hit.value > 0 && words.length <= 10;
-  const guessType = saveIntent && state.goals.length && !hit?.sign ? 'save'
+  const isMoney = !!hit && hit.value > 0 && words.length <= 12;
+  const debt = guessDebt(rest);
+  const guessType = debt && !hit?.sign ? 'debt'
+    : saveIntent && !hit?.sign ? 'save'
     : hit?.sign === '+' ? 'income' : hit?.sign === '-' ? 'expense' : INCOME_RE.test(lower) ? 'income' : 'expense';
-  return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType };
+  return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType, debt };
+}
+// "lent Ahmed", "Ahmed owes me", "borrowed from Ali", "I owe Ali" → a debt.
+function guessDebt(rest) {
+  const r = rest.trim();
+  let m;
+  if ((m = r.match(/^(?:i\s+)?(?:lent|loaned)\s+(?:to\s+)?(.+)$/i))) return { dir:'in', who:m[1] };
+  if ((m = r.match(/^(.+?)\s+owes\s+me\b/i))) return { dir:'in', who:m[1] };
+  if ((m = r.match(/^(?:i\s+)?borrowed\s+(?:from\s+)?(.+)$/i))) return { dir:'out', who:m[1] };
+  if ((m = r.match(/^(?:i\s+)?owe\s+(.+)$/i))) return { dir:'out', who:m[1] };
+  return null;
 }
 function guessGoal(lower, tags) {
   const norm = s => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
@@ -645,29 +688,31 @@ function guessGoal(lower, tags) {
 }
 
 /* ---------- capture state ---------- */
-let draft = '', capType = null, capCat = null, capGoal = null, capAcct = null;
+let draft = '', capType = null, capCat = null, capGoal = null, capAcct = null, capDir = null;
 function preview() {
   const t = draft.trim(); if (!t) return null;
   const a = analyze(t);
   const type = capType || (a.isMoney ? a.guessType : 'note');
   if (type === 'note') return { type, text: t, tags: a.tags };
   const acct = capAcct || guessAcct(a.tags);
+  if (type === 'debt') { const who = (a.debt?.who || a.rest || 'Someone').trim(); return { type, text: who[0].toUpperCase() + who.slice(1), amount: a.amount, dir: capDir || a.debt?.dir || 'in', acct, tags: a.tags }; }
   if (type === 'save') { const goal = capGoal || guessGoal(a.lower, a.tags); return { type, text: goalById(goal)?.name || 'Savings', amount: a.amount, goal, acct, tags: a.tags }; }
   const label = a.amount != null ? (a.rest || (type === 'income' ? 'Income' : 'Expense')) : t.replace(TAG_RE, '').trim();
   return { type, text: label, amount: a.amount, cat: type === 'expense' ? (capCat || guessCat(a.lower, a.tags)) : null, acct, tags: a.tags };
 }
-const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'], save:['save','Saving'], transfer:['swap','Transfer'] };
+const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'], save:['save','Saving'], transfer:['swap','Transfer'], debt:['wallet','Debt'] };
 const goalOptions = sel => state.goals.map(g => `<option value="${esc(g.id)}"${g.id === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
 const signed = (n, plus = true) => (n < 0 ? '−' : plus ? '+' : '') + money(Math.abs(n));
 function previewHTML(p) {
   if (!p) return '';
-  const [ic, label] = TYPE_META[p.type];
-  let h = `<button type="button" class="chip chip-${p.type}" data-act="cap-type" aria-label="Saving as ${label}. Change type">${icon(ic)}${label}<span class="chip-swap" aria-hidden="true">· change</span></button>`;
+  const types = ['note', 'expense', 'income', 'save', 'debt'];
+  let h = `<label class="sr-only" for="cap-type">Type</label><select id="cap-type" class="mini-select" data-change="cap-type">${types.map(t => `<option value="${t}"${p.type === t ? ' selected' : ''}>${TYPE_META[t][1]}</option>`).join('')}</select>`;
   if (p.type === 'expense') h += `<label class="sr-only" for="cap-cat">Category</label><select id="cap-cat" class="mini-select" data-change="cap-cat">${catOptions(p.cat)}</select>`;
-  if (p.type === 'save') h += `<label class="sr-only" for="cap-goal">Goal</label><select id="cap-goal" class="mini-select" data-change="cap-goal">${goalOptions(p.goal)}</select>`;
+  if (p.type === 'save') h += `<label class="sr-only" for="cap-goal">Goal</label><select id="cap-goal" class="mini-select" data-change="cap-goal">${state.goals.length ? goalOptions(p.goal) : '<option value="">Savings (new goal)</option>'}</select>`;
+  if (p.type === 'debt') h += `<span class="cap-amt" style="font-weight:500">${esc(p.text)}</span><label class="sr-only" for="cap-dir">Who owes</label><select id="cap-dir" class="mini-select" data-change="cap-dir"><option value="in"${p.dir === 'in' ? ' selected' : ''}>owes you</option><option value="out"${p.dir === 'out' ? ' selected' : ''}>you owe them</option></select>`;
   if (p.type !== 'note' && state.accounts.length > 1) h += `<label class="sr-only" for="cap-acct">Account</label><select id="cap-acct" class="mini-select" data-change="cap-acct">${acctOptions(p.acct)}</select>`;
   if (p.type !== 'note') h += p.amount > 0
-    ? `<span class="cap-amt">${p.type === 'expense' ? '−' : '+'}${money(p.amount)}</span>`
+    ? `<span class="cap-amt">${p.type === 'expense' ? '−' : p.type === 'debt' ? '' : '+'}${money(p.amount)}</span>`
     : `<span class="cap-amt missing">Add an amount, like “lunch 12”</span>`;
   return h;
 }
@@ -681,11 +726,21 @@ function updatePreview() {
 function capSave() {
   const p = preview(); if (!p) return;
   if (p.type !== 'note' && !(p.amount > 0)) { toast('Add an amount first, like “lunch 12”.'); return; }
+  if (p.type === 'debt') {
+    const d = { id:uid(), who:p.text, dir:p.dir, amount:p.amount, acct:p.acct || null, due:null, note:'', ts:Date.now(), pays:[] };
+    state.debts.push(d);
+    draft = ''; capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null;
+    save();
+    $('#cap')?.focus();
+    toast(d.dir === 'in' ? `${d.who} owes you ${money(d.amount)}` : `You owe ${d.who} ${money(d.amount)}`, { action:'Undo', onAction() { state.debts = state.debts.filter(x => x.id !== d.id); save(); } });
+    return;
+  }
+  if (p.type === 'save' && !goalById(p.goal)) { const g = { id:uid(), name:'Savings', target:0, date:null, start:0, ts:Date.now() }; state.goals.push(g); p.goal = g.id; p.text = g.name; }
   const e = { id:uid(), type:p.type, text:p.text, amount:p.type === 'note' ? null : p.amount, cat:p.cat || null, tags:p.tags, ts:Date.now(), pinned:false };
   if (p.type === 'save') e.goal = p.goal;
   if (p.type !== 'note' && p.acct) e.acct = p.acct;
   state.entries.push(e);
-  draft = ''; capType = null; capCat = null; capGoal = null; capAcct = null;
+  draft = ''; capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null;
   save();
   const cap = $('#cap'); if (cap) cap.focus();
   toast(e.type === 'note' ? 'Note saved' : e.type === 'save' ? `Saved ${money(e.amount)} · ${e.text}` : `${e.type === 'income' ? 'Income' : 'Expense'} logged · ${money(e.amount)}`, {
@@ -714,7 +769,10 @@ function monthStats(y, m) {
 }
 const activeSubs = () => state.subs.filter(s => s.status === 'active');
 const subsMonthly = () => activeSubs().reduce((t, s) => t + s.amount * (PER_MONTH[s.cycle] || 1), 0);
-const upcomingSubs = days => activeSubs().filter(s => daysUntil(s.next) <= days).sort((a, b) => a.next.localeCompare(b.next));
+const billsMonthly = () => subsMonthly() + state.recurring.filter(r => r.type === 'expense' && r.status !== 'paused').reduce((t, r) => t + r.amount * (PER_MONTH[r.cycle] || 1), 0);
+// Bills, subscriptions and income due in the next few days, soonest first.
+const upcoming = days => [...activeSubs().filter(s => daysUntil(s.next) <= days).map(s => ({ next:s.next, html:subRow(s) })),
+  ...state.recurring.filter(r => r.status !== 'paused' && daysUntil(r.next) <= days).map(r => ({ next:r.next, html:recRow(r) }))].sort((a, b) => a.next.localeCompare(b.next));
 function nextDate(s) {
   const d = parseYmd(s.next);
   if (s.cycle === 'weekly') { d.setDate(d.getDate() + 7); return ymd(d); }
@@ -749,19 +807,11 @@ function entryItem(e, showDay) {
     ${amt}</button></li>`;
 }
 function subRow(s) {
-  const d = daysUntil(s.next);
   const off = s.status !== 'active';
-  const when = off ? (s.status === 'paused' ? 'Paused' : 'Cancelled')
-    : d < 0 ? `Overdue by ${plural(-d, 'day')}` : d === 0 ? 'Due today' : d === 1 ? 'Due tomorrow' : `Renews in ${d} days`;
-  const cls = off ? '' : d < 0 ? 'is-overdue' : d <= 3 ? 'is-soon' : '';
-  return `<li class="sub-row ${cls}">
-    <div class="sub-main"><span class="sub-name">${esc(s.name)}</span>
-      <span class="sub-meta"><span class="when">${when}</span>${off ? '' : ' · ' + shortDate(s.next)} · ${CYCLES[s.cycle] || s.cycle}</span></div>
-    <span class="amt">${money(s.amount)}</span>
-    <div class="row-actions">
-      ${off ? '' : `<button class="btn small secondary" data-act="sub-paid" data-id="${s.id}">${icon('check')}Paid</button>`}
-      <button class="icon-btn" data-act="sub-edit" data-id="${s.id}" aria-label="Edit ${esc(s.name)}">${icon('edit')}</button>
-    </div></li>`;
+  return `<li class="sub-row">
+    <button class="row-main" data-act="sub-edit" data-id="${esc(s.id)}"><span class="sub-main"><span class="sub-name">${esc(s.name)}</span>
+      <span class="sub-meta">${off ? (s.status === 'paused' ? 'Paused' : 'Cancelled') : 'Next ' + shortDate(s.next)} · ${CYCLES[s.cycle] || s.cycle}</span></span>
+    <span class="amt out">−${money(s.amount)}</span></button></li>`;
 }
 function stat(label, value, sub, neg) {
   return `<div class="card stat"><div class="stat-label">${label}</div><div class="stat-value${neg ? ' neg' : ''}">${value}</div>${sub ? `<div class="stat-sub">${sub}</div>` : ''}</div>`;
@@ -773,25 +823,27 @@ function vToday() {
   const todays = state.entries.filter(e => sameDay(e.ts, now)).sort(byTsDesc);
   const pinned = state.entries.filter(e => e.pinned && !sameDay(e.ts, now)).sort(byTsDesc);
   const st = monthStats(now.getFullYear(), now.getMonth());
-  const up = upcomingSubs(7);
+  const up = upcoming(7);
+  const moneyCount = state.entries.filter(e => e.type !== 'note').length;
   return `
   <header class="page-head"><h1 tabindex="-1">${now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' })}</h1></header>
   <div id="backup-banner">${bannerHTML()}</div>
   ${reviewBanner()}
   <section class="card capture" aria-label="Quick capture">
     <label for="cap" class="sr-only">Write a note, or log money like “coffee 4.50”</label>
-    <textarea id="cap" rows="2" placeholder="coffee 4.50 · +3000 salary · or a note">${esc(draft)}</textarea>
+    <textarea id="cap" rows="2" placeholder="lunch 45 · salary +15000 · or a note">${esc(draft)}</textarea>
     <div class="cap-bar">
       <div class="cap-preview" id="cap-preview">${previewHTML(preview())}</div>
       <button class="btn primary" data-act="cap-save"${draft.trim() ? '' : ' disabled'}>Save</button>
     </div>
   </section>
+  ${moneyCount < 3 ? `<p class="hint" style="margin:-16px 2px 20px">Amounts in ${esc(state.settings.currency)} · <a href="#settings">Change</a></p>` : ''}
   <section class="stats" aria-label="This month">
     ${stat('Spent', money(st.spent))}
-    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)}`, st.left < 0) : stat('Budgets', '—', '<a href="#budget">Set limits</a>')}
-    ${stat('Subscriptions / mo', money(subsMonthly()))}
+    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)} budget`, st.left < 0) : stat('Income', money(st.income))}
+    ${stat('Bills / mo', money(billsMonthly()))}
   </section>
-  ${up.length ? `<section><h2>Renewing soon</h2><ul class="list card">${up.map(subRow).join('')}</ul></section>` : ''}
+  ${up.length ? `<section><h2>Coming up</h2><ul class="list card">${up.map(x => x.html).join('')}</ul></section>` : ''}
   ${pinned.length ? `<section><h2>Pinned</h2><ul class="list card">${pinned.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}
   <section><h2>Today</h2>
     ${todays.length ? `<ul class="list card">${todays.map(e => entryItem(e)).join('')}</ul>`
@@ -822,7 +874,7 @@ function vNotes() {
   ${topTags.length ? `<div class="tags" role="group" aria-label="Filter by tag">${topTags.map(t => `<button class="chip" data-act="nt-tag" data-v="${esc(t)}" aria-pressed="${nt.tag === t}">#${esc(t)}</button>`).join('')}</div>` : ''}
   ${pinned.length ? `<section><h2>Pinned</h2>${grid(pinned)}</section>` : ''}
   ${rest.length ? `<section>${pinned.length ? '<h2>Others</h2>' : ''}${grid(rest)}</section>` : ''}
-  ${list.length ? '' : `<div class="card empty">${all.length ? 'No matches' : 'No notes yet'}</div>`}`;
+  ${list.length ? '' : `<div class="card empty">${all.length ? 'No matches' : 'No notes yet. Notes you write on Today show up here too.'}</div>`}`;
 }
 // Lines like "- [ ] milk" or "[x] done" become tickable checkboxes.
 function noteBody(e) {
@@ -929,15 +981,13 @@ function vBudget() {
   <section class="stats four" aria-label="Summary">
     ${stat('Spent', money(st.spent))}
     ${stat('Income', money(st.income))}
-    ${stat('Net', (net < 0 ? '−' : '+') + money(Math.abs(net)), '', net < 0)}
-    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)}`, st.left < 0) : stat('Budgets', '—')}
+    ${st.income ? stat('Net', (net < 0 ? '−' : '+') + money(Math.abs(net)), 'income − spent', net < 0) : stat('Net', '—', 'no income yet')}
+    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)} budget`, st.left < 0) : stat('Budget', '—', 'no limits set')}
   </section>
   ${reviewHTML(st, y, m)}
-  <section><div class="section-head"><h2>Monthly income</h2><button class="link-btn" data-act="rec-add" data-v="income">+ Add</button></div>
-    ${recList('income', 'Salary and other income — added automatically')}
-  </section>
   <section><h2>Daily</h2><div class="card chart">${dayChart(st, y, m)}</div></section>
   <section><div class="section-head"><h2>Categories</h2><button class="link-btn" data-act="cat-add">+ Add</button></div>
+    ${st.budget ? '' : '<p class="help" style="margin:0 0 10px">Tap a category to give it a monthly limit.</p>'}
     <ul class="list card">${cats.map(({ c, spent }) => catRow(c, spent)).join('')}</ul>
   </section>`;
 }
@@ -948,6 +998,12 @@ function reviewHTML(st, y, m) {
   const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
   // For the running month compare against the same days of last month, not the whole month.
   const upTo = isNow ? now.getDate() : st.days;
+  // Count days only from when you started using Daybook, so the first week isn't spread over a month.
+  const first = Math.min(...state.entries.map(e => e.ts));
+  const from = Math.max(new Date(y, m, 1).getTime(), startOfDay(new Date(first)).getTime());
+  const tracked = Math.max(1, Math.round((new Date(y, m, upTo + 1).getTime() - from) / 864e5));
+  // Wait for a week and a handful of entries before judging the running month.
+  if (isNow && (tracked < 7 || state.entries.filter(e => e.type === 'expense' && e.ts >= from).length < 5)) return '';
   const prevSpent = isNow ? prev.byDay.slice(0, upTo).reduce((t, v) => t + v, 0) : prev.spent;
   const prevName = new Date(py, pm, 1).toLocaleDateString(undefined, { month:'long' });
   const chg = (cur, old) => {
@@ -963,13 +1019,13 @@ function reviewHTML(st, y, m) {
   }
   if (st.saved) rows.push(row('Into savings', signed(st.saved)));
   if (prevSpent > 0) rows.push(row(`Spending vs ${isNow ? 'same days of ' : ''}${prevName}`, `${money(st.spent)}${chg(st.spent, prevSpent)}`));
-  if (st.spent > 0) rows.push(row('Per day', money(st.spent / Math.max(1, upTo))));
+  if (st.spent > 0) rows.push(row('Per day', money(st.spent / tracked)));
   if (st.biggest) rows.push(row(`Biggest · ${esc(st.biggest.text)}`, money(st.biggest.amount)));
   const top = Object.entries(st.byCat).sort((a, b) => b[1] - a[1]).slice(0, 3);
   for (const [cid, v] of top) {
     const c = catById(cid);
     const old = isNow ? null : prev.byCat[cid];
-    rows.push(row(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span>${esc(c.name)}`, `${money(v)}<span class="chg">${Math.round(v / st.spent * 100)}%</span>${old ? chg(v, old) : ''}`));
+    rows.push(row(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span>${esc(c.name)}`, `${money(v)}<span class="chg">${Math.round(v / st.spent * 100)}% of spending</span>${old ? chg(v, old) : ''}`));
   }
   return `<section><h2>Review</h2><div class="card rev">${rows.join('')}</div></section>`;
 }
@@ -1019,26 +1075,28 @@ function dayChart(st, y, m) {
 }
 
 function vSubs() {
-  const active = activeSubs().sort((a, b) => a.next.localeCompare(b.next));
-  const others = state.subs.filter(s => s.status !== 'active');
-  const monthly = subsMonthly();
-  const top = [...active].sort((a, b) => b.amount * PER_MONTH[b.cycle] - a.amount * PER_MONTH[a.cycle])[0];
+  const on = state.recurring.filter(r => r.status !== 'paused');
+  const perMo = (r, amt = r.amount) => amt * (PER_MONTH[r.cycle] || 1);
+  const income = on.filter(r => r.type === 'income').reduce((t, r) => t + perMo(r), 0);
+  const toSave = on.filter(r => r.type === 'income' && r.saveAmt > 0).reduce((t, r) => t + perMo(r, r.saveAmt), 0);
+  const bills = billsMonthly();
+  const items = [...state.recurring.filter(r => r.type === 'expense' && r.status !== 'paused').map(r => ({ next:r.next, html:recRow(r) })),
+    ...activeSubs().map(s => ({ next:s.next, html:subRow(s) }))].sort((a, b) => a.next.localeCompare(b.next));
+  const off = [...state.recurring.filter(r => r.type === 'expense' && r.status === 'paused').map(recRow), ...state.subs.filter(s => s.status !== 'active').map(subRow)];
   return `
-  <header class="page-head"><h1 tabindex="-1">Subscriptions</h1>
-    <button class="btn primary" data-act="sub-add">${icon('plus')}Add</button></header>
-  <section class="stats" aria-label="Totals">
-    ${stat('Per month', money(monthly))}
-    ${stat('Per year', money(monthly * 12))}
-    ${stat('Biggest', top ? esc(top.name) : '—')}
+  <header class="page-head"><h1 tabindex="-1">Monthly</h1></header>
+  <section class="stats" aria-label="Every month">
+    ${stat('Income / mo', money(income))}
+    ${stat('Bills / mo', money(bills))}
+    ${income ? stat('Left / mo', signed(income - bills - toSave, false), toSave ? `after ${money(toSave)} to savings` : 'after bills', income - bills - toSave < 0) : stat('Left / mo', '—', 'add your income')}
   </section>
-  <section><h2>Active</h2>
-    ${active.length ? `<ul class="list card">${active.map(subRow).join('')}</ul>`
-      : `<div class="card empty">No subscriptions yet</div>`}
+  <section><div class="section-head"><h2>Income</h2><button class="link-btn" data-act="rec-add" data-v="income">+ Add</button></div>
+    ${recList('income', 'Add your salary and any other income. It’s added for you on each payday.')}
   </section>
-  ${others.length ? `<details class="more"><summary>Paused & cancelled (${others.length})</summary><ul class="list card" style="margin-top:8px">${others.map(subRow).join('')}</ul></details>` : ''}
-  <section style="margin-top:28px"><div class="section-head"><h2>Recurring bills</h2><button class="link-btn" data-act="rec-add" data-v="expense">+ Add</button></div>
-    ${recList('expense', 'Rent, bills — logged automatically')}
-  </section>`;
+  <section><div class="section-head"><h2>Bills & subscriptions</h2><button class="link-btn" data-act="rec-add" data-v="expense">+ Add</button></div>
+    ${items.length ? `<ul class="list card">${items.map(x => x.html).join('')}</ul>` : '<div class="card empty">Rent, phone, Netflix… Each one is logged for you on its date.</div>'}
+  </section>
+  ${off.length ? `<details class="more"><summary>Paused & cancelled (${off.length})</summary><ul class="list card" style="margin-top:8px">${off.join('')}</ul></details>` : ''}`;
 }
 function recList(type, empty) {
   const list = state.recurring.filter(r => r.type === type).sort((a, b) => (a.status === 'paused') - (b.status === 'paused') || a.next.localeCompare(b.next));
@@ -1055,7 +1113,8 @@ function recRow(r) {
 
 function vWallet() {
   const bal = balances();
-  const total = state.accounts.reduce((t, a) => t + bal[a.id], 0);
+  const saved = savingsTotal();
+  const total = state.accounts.reduce((t, a) => t + bal[a.id], 0) + saved;
   const open = state.debts.filter(d => debtLeft(d) > 0.004), settled = state.debts.filter(d => debtLeft(d) <= 0.004);
   const sum = dir => open.filter(d => d.dir === dir).reduce((t, d) => t + debtLeft(d), 0);
   const def = defaultAcct();
@@ -1065,15 +1124,16 @@ function vWallet() {
   return `
   <header class="page-head"><h1 tabindex="-1">Wallet</h1></header>
   <section class="stats" aria-label="Totals">
-    ${stat('Balance', signed(total, false), '', total < 0)}
+    ${stat('All your money', signed(total, false), saved ? `incl. ${money(saved)} in savings` : 'accounts + savings', total < 0)}
     ${stat('Owed to you', money(sum('in')))}
     ${stat('You owe', money(sum('out')))}
   </section>
   <section><div class="section-head"><h2>Accounts</h2><span>${state.accounts.length > 1 ? `<button class="link-btn" data-act="transfer">Move money</button><span class="muted" aria-hidden="true"> · </span>` : ''}<button class="link-btn" data-act="acct-add">+ Add</button></span></div>
-    ${state.accounts.length ? `<ul class="list card">${state.accounts.map(acctRow).join('')}</ul>` : `<div class="card empty">Cash, bank, card</div>`}
+    ${state.accounts.length || state.goals.length ? `<ul class="list card">${state.accounts.map(acctRow).join('')}${state.goals.length ? `<li><a class="cat-row" href="#savings"><div class="cat-top"><span class="cat-name">Savings <span class="tag-soft">${plural(state.goals.length, 'goal')}</span></span><span class="cat-nums"><strong>${money(saved)}</strong></span></div></a></li>` : ''}</ul>` : ''}
+    ${state.accounts.length ? '' : '<div class="card empty" style="margin-top:8px">Add where your money is — cash, bank, card — to see what’s in each.</div>'}
   </section>
   <section><div class="section-head"><h2>Debts</h2><button class="link-btn" data-act="debt-add">+ Add</button></div>
-    ${open.length ? `<ul class="list card">${open.sort((a, b) => (a.due || '9').localeCompare(b.due || '9') || a.ts - b.ts).map(debtRow).join('')}</ul>` : `<div class="card empty">Nobody owes anybody</div>`}
+    ${open.length ? `<ul class="list card">${open.sort((a, b) => (a.due || '9').localeCompare(b.due || '9') || a.ts - b.ts).map(debtRow).join('')}</ul>` : `<div class="card empty">Money you lent or borrowed. Add it here, or type “lent Ali 200” on Today.</div>`}
   </section>
   ${settled.length ? `<details class="more"><summary>Settled (${settled.length})</summary><ul class="list card" style="margin-top:8px">${settled.map(debtRow).join('')}</ul></details>` : ''}`;
 }
@@ -1086,12 +1146,9 @@ function debtRow(d) {
   if (days != null) meta.push(`<span class="when">${days < 0 ? 'Overdue' : 'Due'} ${shortDate(d.due)}</span>`);
   if (d.note) meta.push(esc(d.note));
   return `<li class="sub-row ${cls}">
-    <div class="sub-main"><span class="sub-name">${esc(d.who)}</span><span class="sub-meta">${meta.join(' · ')}</span></div>
-    <span class="amt ${open ? (d.dir === 'in' ? 'in' : 'out') : ''}">${money(open ? left : d.amount)}</span>
-    <div class="row-actions">
-      ${open ? `<button class="btn small secondary" data-act="debt-pay" data-id="${esc(d.id)}">${icon('check')}${d.dir === 'in' ? 'Got paid' : 'Paid'}</button>` : ''}
-      <button class="icon-btn" data-act="debt-edit" data-id="${esc(d.id)}" aria-label="Edit ${esc(d.who)}">${icon('edit')}</button>
-    </div></li>`;
+    <button class="row-main" data-act="debt-edit" data-id="${esc(d.id)}"><span class="sub-main"><span class="sub-name">${esc(d.who)}</span><span class="sub-meta">${meta.join(' · ')}</span></span>
+    <span class="amt ${open ? (d.dir === 'in' ? 'in' : 'out') : ''}">${money(open ? left : d.amount)}</span></button>
+    ${open ? `<div class="row-actions"><button class="btn small secondary" data-act="debt-pay" data-id="${esc(d.id)}">${icon('check')}${d.dir === 'in' ? 'Got paid' : 'Paid'}</button></div>` : ''}</li>`;
 }
 
 function vSavings() {
@@ -1117,7 +1174,7 @@ function vSavings() {
   </section>
   <section><h2>Goals</h2>
     ${goals.length ? `<ul class="list card">${goals.map(g => goalRow(g, savedBy[g.id] || 0)).join('')}</ul>`
-      : `<div class="card empty">No goals yet</div>`}
+      : `<div class="card empty">Make a goal — emergency fund, car, trip — then put money in.</div>`}
   </section>
   ${recent.length ? `<section><h2>Recent</h2><ul class="list card">${recent.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}`;
 }
@@ -1135,12 +1192,12 @@ function goalRow(g, saved) {
       : `<div class="cat-status">${money(left / Math.max(1, Math.ceil(days / 30.44)))} / month to reach it by ${dateTxt}</div>`;
   } else if (g.target > 0) status = `<div class="cat-status">${money(left)} to go</div>`;
   return `<li class="goal-row">
-    <button class="cat-row" data-act="goal-move" data-id="${esc(g.id)}" aria-label="${esc(g.name)}: add or take out money">
+    <button class="cat-row" data-act="goal-edit" data-id="${esc(g.id)}">
       <div class="cat-top"><span class="cat-name">${esc(g.name)}</span><span class="cat-nums"><strong>${money(saved)}</strong>${g.target > 0 ? ` of ${money(g.target)}` : ''}</span></div>
       ${g.target > 0 ? `<div class="meter${done ? ' done' : ''}" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(Math.max(pct, 0), 100))}"><span style="width:${Math.min(Math.max(pct, 0), 100)}%"></span></div>` : ''}
       ${status}
     </button>
-    <button class="icon-btn" data-act="goal-edit" data-id="${esc(g.id)}" aria-label="Edit ${esc(g.name)}">${icon('edit')}</button></li>`;
+    <button class="btn small secondary" data-act="goal-move" data-id="${esc(g.id)}" aria-label="Add or take out money: ${esc(g.name)}">${icon('plus')}Add money</button></li>`;
 }
 
 function vSettings() {
@@ -1180,14 +1237,14 @@ function backupBody() {
   const folderStep = B.supported
     ? `<div class="step ${folderDone ? 'done' : ''}"><span class="step-num">${folderDone ? icon('check') : '2'}</span><div class="step-body">
         <strong>Folder</strong>
-        <p>${folderDone ? esc(B.handle.name) : 'Pick one inside Google Drive'}</p>
+        <p>${folderDone ? esc(B.handle.name) : 'Choose a folder inside Google Drive on this computer'}</p>
         <button class="btn ${folderDone ? 'secondary small' : 'primary'}" data-act="bk-folder" ${pwDone ? '' : 'disabled'}>${icon('folder')}${folderDone ? 'Change folder' : 'Choose folder'}</button>
       </div></div>`
     : Sync.st.on ? '' : `<div class="note-box">${icon('alert')}<span>Auto backups need Edge or Chrome. Use Download instead.</span></div>`;
-  return `${status}
+  return `<p>Keeps a locked copy of everything in a folder you choose, so nothing is lost if this device breaks.</p>${status}
     <div class="step ${pwDone ? 'done' : ''}"><span class="step-num">${pwDone ? icon('check') : '1'}</span><div class="step-body">
       <strong>Password</strong>
-      <p>${pwDone ? 'Encrypted' : "Write it down. It can't be recovered."}</p>
+      <p>${pwDone ? 'Set. Your backups are locked with it.' : 'Locks your backups. Write it down — without it, they can’t be opened.'}</p>
       <button class="btn ${pwDone ? 'secondary small' : 'primary'}" data-act="bk-password">${icon('lock')}${pwDone ? 'Change password' : 'Set password'}</button>
     </div></div>
     ${folderStep}
@@ -1202,7 +1259,7 @@ function bannerHTML() {
   }
   if (B.status === 'needs-permission') return `<div class="banner">${icon('alert')}<p>Backup paused</p><button class="btn small primary" data-act="bk-reconnect">Allow</button></div>`;
   if (B.status === 'error') return `<div class="banner">${icon('alert')}<p>Backup failed</p><a class="btn small secondary" href="#settings">Details</a></div>`;
-  if (!S.st.on && (B.status === 'no-password' || B.status === 'no-folder' || B.status === 'manual') && state.entries.length + state.subs.length >= 3)
+  if (!S.st.on && (B.status === 'no-password' || B.status === 'no-folder' || B.status === 'manual') && state.entries.length + state.subs.length >= 10)
     return `<div class="banner info">${icon('cloud-off')}<p>Backups are off</p><a class="btn small primary" href="#settings">Set up</a></div>`;
   return '';
 }
@@ -1231,7 +1288,9 @@ function renderChrome() {
   else if (B.status === 'ready') { cls = 'ok'; ic = 'cloud'; txt = B.lastAt ? `Backed up ${ago(B.lastAt)}` : 'Backups on'; }
   else if (B.status === 'needs-permission' || B.status === 'error') { cls = 'warn'; ic = 'alert'; txt = B.status === 'error' ? 'Backup failed' : 'Reconnect backup'; }
   else if (B.status === 'manual') { txt = 'Manual backups'; }
-  for (const p of $$('.backup-pill')) { p.className = 'backup-pill ' + cls; p.innerHTML = icon(ic) + `<span>${txt}</span>`; p.setAttribute('aria-label', `Backup status: ${txt}. Open settings`); }
+  // Don't nag about backups before there's anything worth backing up.
+  const quiet = txt === 'Backups off' && state.entries.length + state.subs.length < 10;
+  for (const p of $$('.backup-pill')) { p.hidden = quiet; p.className = 'backup-pill ' + cls; p.innerHTML = icon(ic) + `<span>${txt}</span>`; p.setAttribute('aria-label', `Backup status: ${txt}. Open settings`); }
   const b = $('#backup-banner'); if (b) b.innerHTML = bannerHTML();
 }
 function route(focus) {
@@ -1420,15 +1479,6 @@ function editSub(id) {
     toast(`${s.name} deleted`, { action:'Undo', onAction() { state.subs.splice(idx, 0, s); save(); } });
   };
 }
-function subPaid(id) {
-  const s = subById(id); if (!s) return;
-  const prev = s.next;
-  const e = { id:uid(), type:'expense', text:s.name, amount:s.amount, cat:s.cat || 'subscriptions', acct:defaultAcct(), tags:['subscription'], ts:Date.now(), pinned:false, subId:s.id };
-  state.entries.push(e);
-  s.next = nextDate(s);
-  save();
-  toast(`${s.name} logged · next on ${shortDate(s.next)}`, { action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); s.next = prev; save(); } });
-}
 
 function editCat(id) {
   const c = id ? state.categories.find(x => x.id === id) : null;
@@ -1538,13 +1588,14 @@ function editDebt(id) {
       <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${d?.amount || ''}" required></label>
         <label class="field"><span>Due</span><input name="due" type="date" value="${d?.due || ''}"></label></div>
       <label class="field"><span>Note</span><input name="note" value="${esc(d?.note || '')}" placeholder="Optional" autocomplete="off"></label>
+      ${state.accounts.length ? `${acctField(d ? d.acct : defaultAcct())}<p class="help">Lending takes the money out of this account and being paid back puts it in. Pick None if no cash moved, like a bill you split.</p>` : ''}
       ${pays.length ? `<span class="field" style="margin-bottom:6px"><span>Paid back</span></span><ul class="pay-list">${pays.map(p => `<li><span>${shortDate(ymd(new Date(p.ts)))}</span><span class="amt">${money(p.amount)}</span><button type="button" class="icon-btn" data-pay="${esc(p.id)}" aria-label="Remove payment of ${money(p.amount)}">${icon('x')}</button></li>`).join('')}</ul>` : ''}`,
     extra: d ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
     onSubmit(fd, form) {
       const who = String(fd.get('who')).trim(), amount = parseFloat(fd.get('amount'));
       if (!who) return formErr(form, 'Who is it?');
       if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      const data = { who, amount, dir: fd.get('dir'), due: fd.get('due') || null, note: String(fd.get('note')).trim(), pays: kept };
+      const data = { who, amount, dir: fd.get('dir'), due: fd.get('due') || null, note: String(fd.get('note')).trim(), acct: fd.get('acct') || null, pays: kept };
       if (d) Object.assign(d, data); else state.debts.push({ id:uid(), ts:Date.now(), ...data });
       save(); toast(d ? 'Saved' : `${who} added`);
     },
@@ -1573,13 +1624,13 @@ function payDebt(id) {
 
 function editRecurring(id, type = 'expense') {
   const r = id ? state.recurring.find(x => x.id === id) : null;
-  const v = r || { type, text:'', amount:'', cycle:'monthly', next:ymd(new Date()), cat:'housing', acct:defaultAcct(), status:'active' };
+  const v = r || { type, text:'', amount:'', cycle:'monthly', next:ymd(new Date()), cat:'bills', acct:defaultAcct(), status:'active' };
   const radio = t => { const [ic, l] = TYPE_META[t]; return `<label><input type="radio" name="type" value="${t}"${v.type === t ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
   const form = openDialog({
-    title: r ? esc(r.text) : 'New recurring',
+    title: r ? esc(r.text) : v.type === 'income' ? 'New income' : 'New bill',
     submit: r ? 'Save' : 'Add',
     body: `<fieldset class="type-seg"><legend class="sr-only">Type</legend>${radio('expense')}${radio('income')}</fieldset>
-      <label class="field"><span>Name</span><input name="text" value="${esc(v.text)}" placeholder="${v.type === 'income' ? 'Salary, rent from flat, side job…' : 'Rent, phone bill…'}" required autocomplete="off"></label>
+      <label class="field"><span>Name</span><input name="text" value="${esc(v.text)}" placeholder="${v.type === 'income' ? 'Salary, side job, rent you collect…' : 'Rent, phone bill, Netflix…'}" required autocomplete="off"></label>
       <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
         <label class="field"><span>Repeats</span><select name="cycle">${Object.entries(CYCLES).map(([k, l]) => `<option value="${k}"${v.cycle === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <div class="field-row"><label class="field"><span>Next on</span><input name="next" type="date" value="${v.next}" required></label>
@@ -1588,7 +1639,7 @@ function editRecurring(id, type = 'expense') {
       <div class="field-row income-only"><label class="field"><span>Save from each payment</span><input name="saveAmt" type="number" step="0.01" min="0" inputmode="decimal" value="${v.saveAmt || ''}" placeholder="0"></label>
         <label class="field"><span>Into</span><select name="saveGoal">${state.goals.length ? goalOptions(v.saveGoal) : '<option value="">Savings (new goal)</option>'}</select></label></div>
       ${r ? `<label class="check"><input type="checkbox" name="paused"${r.status === 'paused' ? ' checked' : ''}>Paused</label>` : ''}
-      <p class="help" style="margin-top:0">Logged automatically on each date.</p>`,
+      <p class="help" style="margin-top:0">Added to your history automatically on each date.</p>`,
     extra: r ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
     onSubmit(fd, form) {
       const text = String(fd.get('text')).trim(), amount = parseFloat(fd.get('amount')), next = fd.get('next');
@@ -1633,6 +1684,19 @@ function runRecurring() {
         last = `${r.text} logged · ${money(r.saveAmt)} to ${g.name}`;
       }
       r.next = nextDate(r);
+      changed = true;
+    }
+  }
+  // Subscriptions renew on their own too. Only the last month is logged, so a long-forgotten one doesn't flood the history.
+  for (const sub of state.subs) {
+    if (sub.status !== 'active') continue;
+    for (let i = 0; i < 60 && sub.next <= today; i++) {
+      const id = `s-${sub.id}-${sub.next}`;
+      if (daysUntil(sub.next) >= -31 && fresh(id)) {
+        state.entries.push({ id, type:'expense', text:sub.name, amount:sub.amount, cat:sub.cat || 'subscriptions', acct:defaultAcct(), tags:['subscription'], ts:parseYmd(sub.next).getTime() + 9 * 36e5, pinned:false, subId:sub.id });
+        n++; last = `${sub.name} logged`;
+      }
+      sub.next = nextDate(sub);
       changed = true;
     }
   }
@@ -1949,7 +2013,7 @@ function syncCard() {
   if (!S.enabled) return '';
   let body;
   if (!S.st.on) {
-    body = `<p>Keep your phone and PC in step through Google Drive. Encrypted.</p>
+    body = `<p>Keep your phone and computer showing the same data, through your Google Drive. Locked with your backup password.</p>
       <button class="btn primary" data-act="sync-connect">${icon('cloud')}Connect Google Drive</button>`;
   } else {
     const warn = (msg, act, label) => `<div class="status-line warn">${icon('alert')}<span style="flex:1">${msg}</span>${act ? `<button class="btn small primary" data-act="${act}">${label}</button>` : ''}</div>`;
@@ -2041,12 +2105,6 @@ function eraseDialog() {
 /* ---------- events ---------- */
 const ACTIONS = {
   'cap-save': capSave,
-  'cap-type'() {
-    const order = state.goals.length ? ['note', 'expense', 'income', 'save'] : ['note', 'expense', 'income'];
-    const cur = preview()?.type || 'note';
-    capType = order[(order.indexOf(cur) + 1) % order.length];
-    updatePreview();
-  },
   'edit': (el) => editEntry(el.dataset.id),
   'goal-add': () => editGoal(),
   'goal-edit': (el) => editGoal(el.dataset.id),
@@ -2066,9 +2124,8 @@ const ACTIONS = {
   'review-dismiss'(el) { state.settings.reviewSeen = el.dataset.v; save(); },
   'csv': exportCsv,
   'nt-tag'(el) { nt.tag = nt.tag === el.dataset.v ? null : el.dataset.v; render(); },
-  'sub-add': () => editSub(),
+
   'sub-edit': (el) => editSub(el.dataset.id),
-  'sub-paid': (el) => subPaid(el.dataset.id),
   'tl-filter'(el) { tl.filter = el.dataset.v; tl.limit = 150; render(); },
   'tl-tag'(el) { tl.tag = tl.tag === el.dataset.v ? null : el.dataset.v; tl.limit = 150; render(); },
   'tl-more'() { tl.limit += 150; render(); },
@@ -2101,12 +2158,14 @@ main.addEventListener('change', ev => {
   if (k === 'cap-cat') { capCat = ev.target.value; updatePreview(); }
   if (k === 'cap-goal') { capGoal = ev.target.value; updatePreview(); }
   if (k === 'cap-acct') { capAcct = ev.target.value; updatePreview(); }
+  if (k === 'cap-type') { capType = ev.target.value; updatePreview(); }
+  if (k === 'cap-dir') { capDir = ev.target.value; updatePreview(); }
   if (k === 'currency') { state.settings.currency = ev.target.value; save(); }
 });
 main.addEventListener('input', ev => {
   if (ev.target.id === 'cap') {
     draft = ev.target.value;
-    if (!draft.trim()) { capType = null; capCat = null; capGoal = null; capAcct = null; }
+    if (!draft.trim()) { capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null; }
     autoGrow(ev.target); updatePreview();
   } else if (ev.target.id === 'note-new') {
     noteDraft = ev.target.value;
