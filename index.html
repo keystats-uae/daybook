@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Daybook — private notes, budget and subscription tracker that lives on your device.">
+<title>Daybook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0E10" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daybook">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Minimal rectilinear theme: neutral greys, one ink accent, square flat surfaces, Geist + Geist Mono. */
+:root{
+  --bg:#FAFAFA; --surface:#FFFFFF; --surface-2:#F2F2F3; --text:#111113; --muted:#646469;
+  --border:#E9E9EB; --border-strong:#D4D4D8;
+  --accent:#111113; --accent-hover:#2C2C30; --on-accent:#FFFFFF; --accent-soft:#EFEFF1;
+  --expense:#9C4A2F; --expense-soft:#F7EEEA; --income:#1E7548; --income-soft:#E9F4EE;
+  --warn:#8A5A00; --warn-soft:#FBF3E2; --danger:#C0262D; --danger-soft:#FCEBEC;
+  --shadow:none;
+  --radius:0;
+  --font-ui:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-display:var(--font-ui);
+  --font-mono:'Geist Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0E10; --surface:#161618; --surface-2:#1F1F22; --text:#EDEDEF; --muted:#9A9AA0;
+    --border:#252528; --border-strong:#36363B;
+    --accent:#EDEDEF; --accent-hover:#FFFFFF; --on-accent:#111113; --accent-soft:#242427;
+    --expense:#E39C82; --expense-soft:#2A1F1B; --income:#6FCF97; --income-soft:#18261E;
+    --warn:#E3B341; --warn-soft:#2B2414; --danger:#F4736A; --danger-soft:#2E1A1A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0E10; --surface:#161618; --surface-2:#1F1F22; --text:#EDEDEF; --muted:#9A9AA0;
+  --border:#252528; --border-strong:#36363B;
+  --accent:#EDEDEF; --accent-hover:#FFFFFF; --on-accent:#111113; --accent-soft:#242427;
+  --expense:#E39C82; --expense-soft:#2A1F1B; --income:#6FCF97; --income-soft:#18261E;
+  --warn:#E3B341; --warn-soft:#2B2414; --danger:#F4736A; --danger-soft:#2E1A1A;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+p{margin:0 0 10px}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:square;stroke-linejoin:miter}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.skip{position:absolute;left:12px;top:-80px;z-index:200;background:var(--accent);color:var(--on-accent);padding:10px 14px;border-radius:0;border:0;font-weight:600;cursor:pointer}
+.skip:focus{top:12px}
+
+/* Layout */
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100dvh}
+.side{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;gap:22px;padding:28px 14px 20px;border-right:1px solid var(--border)}
+.nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:0;color:var(--muted);text-decoration:none;font-weight:500;min-height:44px;transition:background-color .15s,color .15s;touch-action:manipulation}
+@media (hover:hover){.nav a:hover{background:var(--surface-2);color:var(--text)}}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.lbl-short{display:none}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:0 6px}
+.backup-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:0;font-size:13px;font-weight:500;text-decoration:none;color:var(--muted);background:var(--surface-2);min-height:34px;white-space:nowrap}
+.backup-pill .ic{width:16px;height:16px}
+.backup-pill.ok{color:var(--income);background:var(--income-soft)}
+.backup-pill.warn{color:var(--warn);background:var(--warn-soft)}
+.mobile-top{display:none}
+main{width:100%;max-width:760px;margin:0 auto;padding:44px 32px 96px}
+
+/* Type */
+.page-head{margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.eyebrow{margin:0 0 4px;color:var(--muted);font-size:14px;font-weight:500}
+h1{font-family:var(--font-display);font-weight:600;font-size:clamp(26px,4vw,32px);line-height:1.15;letter-spacing:-.025em;margin:0;text-wrap:balance}
+h1:focus{outline:none}
+h2{font-family:var(--font-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500;margin:0 0 10px}
+.stat-label{font-family:var(--font-mono);font-size:11.5px!important;text-transform:uppercase;letter-spacing:.06em}
+.stat-value,.amt,.cap-amt,.cat-nums,.chart-axis,.chart-sum,.sub-meta,.entry-meta{font-family:var(--font-mono)}
+.stat-value{letter-spacing:-.03em!important}
+h3{font-size:17px;margin:0 0 4px;font-weight:600}
+section{margin-bottom:28px}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.section-head a,.link-btn{font-size:14px;font-weight:500;background:none;border:0;color:var(--accent);cursor:pointer;padding:4px 0;text-decoration:none}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Surfaces */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:0;box-shadow:var(--shadow)}
+.capture{padding:14px 16px 12px;transition:border-color .15s,box-shadow .15s}
+.capture:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
+.capture textarea{display:block;width:100%;border:0;background:transparent;resize:none;font-size:18px;line-height:1.5;padding:4px 2px;min-height:58px;max-height:45vh;outline:none}
+.capture textarea::placeholder{color:var(--muted)}
+.cap-bar{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px dashed var(--border)}
+.cap-preview{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:36px}
+.cap-amt{font-weight:600;font-variant-numeric:tabular-nums}
+.cap-amt.missing{color:var(--warn);font-weight:500;font-size:14px}
+.hint{margin:8px 2px 0;font-size:13px;color:var(--muted)}
+kbd{font-family:inherit;font-size:12px;padding:1px 6px;border-radius:0;border:1px solid var(--border-strong);background:var(--surface-2)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:0;border:1px solid var(--border);background:var(--surface-2);font-size:14px;font-weight:500;cursor:pointer;min-height:36px;touch-action:manipulation;transition:background-color .15s,border-color .15s}
+.chip:hover{border-color:var(--border-strong)}
+.chip .ic{width:16px;height:16px}
+.chip-note{color:var(--accent)} .chip-expense{color:var(--expense)} .chip-income{color:var(--income)}
+.chip-swap{color:var(--muted);font-weight:400;font-size:12px}
+.chip.static{cursor:default}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.mini-select{min-height:36px;padding:4px 30px 4px 12px;border-radius:0;border:1px solid var(--border);background:var(--surface-2);font-size:14px;cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:0;border:1px solid transparent;font-weight:600;font-size:15px;cursor:pointer;min-height:44px;touch-action:manipulation;transition:background-color .15s,border-color .15s,opacity .15s,transform .1s;text-decoration:none;white-space:nowrap}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn .ic{width:18px;height:18px}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn.secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn.secondary:hover:not(:disabled){background:var(--surface-2)}
+.btn.ghost{background:transparent;color:var(--text)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.danger-ghost{background:transparent;color:var(--danger)}
+.btn.danger-ghost:hover{background:var(--danger-soft)}
+.btn.small{min-height:36px;padding:6px 12px;font-size:14px;border-radius:0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.loading{opacity:.7;pointer-events:none}
+.icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:0;border:0;background:transparent;color:var(--muted);cursor:pointer;flex:none;transition:background-color .15s,color .15s}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stat{padding:14px 16px;min-width:0}
+.stat-label{font-size:13px;color:var(--muted);font-weight:500}
+.stat-value{font-family:var(--font-display);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:2px;overflow-wrap:anywhere;line-height:1.25}
+.stat-value.neg{color:var(--danger)}
+.stat-sub{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* Lists */
+.list{list-style:none;margin:0;padding:0}
+.list.card{overflow:hidden}
+.list.card>li+li{border-top:1px solid var(--border)}
+.entry{width:100%;display:flex;gap:12px;align-items:flex-start;text-align:left;padding:13px 16px;background:transparent;border:0;cursor:pointer;min-height:56px;transition:background-color .15s}
+.entry:hover{background:var(--surface-2)}
+.entry-ic{width:32px;height:32px;border-radius:0;display:grid;place-items:center;flex:none;margin-top:1px}
+.entry-ic .ic{width:17px;height:17px}
+.t-note{color:var(--accent);background:var(--accent-soft)}
+.t-expense{color:var(--expense);background:var(--expense-soft)}
+.t-income{color:var(--income);background:var(--income-soft)}
+.entry-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.entry-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.entry-meta{font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.entry-meta .ic{width:13px;height:13px}
+.dot{width:8px;height:8px;border-radius:0;display:inline-block;flex:none}
+.amt{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.amt.out{color:var(--expense)} .amt.in{color:var(--income)}
+.empty{padding:28px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--text);font-weight:600;margin-bottom:4px}
+.empty .btn{margin-top:12px}
+
+.banner{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:0;background:var(--warn-soft);margin-bottom:20px;flex-wrap:wrap}
+.banner>.ic{color:var(--warn)}
+.banner p{margin:0;flex:1;min-width:200px;font-size:15px}
+.banner.info{background:var(--accent-soft)}
+.banner.info>.ic{color:var(--accent)}
+
+/* Timeline */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;padding:10px 12px 10px 40px;border-radius:0;border:1px solid var(--border-strong);background:var(--surface);min-height:44px}
+.search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:0;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:0;font-weight:500;font-size:14px;cursor:pointer;color:var(--muted);min-height:38px;transition:background-color .15s,color .15s}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.tags .chip{min-height:32px;padding:3px 11px;font-size:13px;color:var(--muted)}
+.day-group{margin-bottom:22px}
+
+/* Notes */
+.note-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.note-tile{width:100%;height:100%;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;text-align:left;padding:16px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:border-color .15s}
+.note-tile:hover{border-color:var(--text)}
+.note-text{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
+.capture .cap-bar.end{justify-content:flex-end}
+
+/* Budget */
+.month-nav{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:0;padding:2px}
+.month-nav .label{min-width:140px;text-align:center;font-weight:600;font-size:15px;background:none;border:0;cursor:pointer;min-height:40px;border-radius:0}
+.cat-row{width:100%;display:block;text-align:left;padding:14px 16px;background:transparent;border:0;cursor:pointer;transition:background-color .15s}
+.cat-row:hover{background:var(--surface-2)}
+.cat-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.cat-name{display:flex;align-items:center;gap:8px;font-weight:600}
+.cat-nums{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.cat-nums strong{color:var(--text);font-weight:600}
+.meter{height:8px;background:var(--surface-2);border-radius:0;margin-top:10px;overflow:hidden}
+.meter>span{display:block;height:100%;border-radius:0;background:var(--accent);transition:width .4s ease-out}
+.meter.warn>span{background:var(--warn)}
+.meter.over>span{background:var(--danger)}
+.cat-status{font-size:13px;margin-top:6px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.cat-status .ic{width:14px;height:14px}
+.cat-status.over{color:var(--danger);font-weight:500}
+.cat-status.warn{color:var(--warn);font-weight:500}
+.chart{padding:16px 16px 12px}
+.chart svg{display:block;width:100%;height:100px}
+.chart .b{fill:var(--accent);opacity:.55}
+.chart .b.today{opacity:1}
+.chart .base{stroke:var(--border-strong);stroke-width:1}
+.chart-axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.chart-sum{font-size:14px;color:var(--muted);margin:0 0 10px}
+
+/* Subscriptions */
+.sub-row{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;flex-wrap:wrap}
+.sub-main{flex:1;min-width:150px;display:flex;flex-direction:column}
+.sub-name{font-weight:600;overflow-wrap:anywhere}
+.sub-meta{font-size:13px;color:var(--muted)}
+.is-overdue .when{color:var(--danger);font-weight:600}
+.is-soon .when{color:var(--warn);font-weight:600}
+.row-actions{display:flex;gap:4px;align-items:center;margin-left:auto}
+details.more{margin-top:14px}
+details.more summary{cursor:pointer;color:var(--muted);font-weight:500;font-size:14px;padding:8px 0;list-style-position:inside}
+
+/* Settings */
+.set-card{padding:20px;margin-bottom:16px}
+.set-card>p{color:var(--muted);font-size:15px}
+.step{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--border)}
+.step:first-of-type{margin-top:6px}
+.step-num{width:28px;height:28px;border-radius:0;display:grid;place-items:center;background:var(--surface-2);font-weight:600;font-size:14px;flex:none}
+.step-num .ic{width:16px;height:16px}
+.step.done .step-num{background:var(--income-soft);color:var(--income)}
+.step-body{flex:1;min-width:0}
+.step-body p{font-size:14px;color:var(--muted);margin:2px 0 10px}
+.status-line{display:flex;align-items:center;gap:8px;font-size:14px;padding:12px 14px;border-radius:0;background:var(--surface-2);margin:6px 0 14px}
+.status-line .ic{width:18px;height:18px}
+.status-line.ok{background:var(--income-soft);color:var(--income)}
+.status-line.warn{background:var(--warn-soft);color:var(--warn)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.pref{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.pref:first-of-type{border-top:0}
+.pref label,.pref .pref-label{font-weight:500}
+.select{min-height:44px;padding:8px 12px;border-radius:0;border:1px solid var(--border-strong);background:var(--surface);cursor:pointer}
+.danger-zone{border-color:var(--danger-soft)}
+
+/* Forms & dialog */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-width:0}
+.field>span{font-size:14px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border-radius:0;border:1px solid var(--border-strong);background:var(--bg);min-height:44px}
+.field textarea{resize:vertical;line-height:1.5}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.help{font-size:13px;color:var(--muted);margin:-6px 0 14px}
+.check{display:flex;align-items:center;gap:10px;font-weight:500;margin-bottom:12px;cursor:pointer;min-height:36px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.type-seg{display:flex;gap:6px;margin:0 0 16px;padding:0;border:0}
+.type-seg label{flex:1}
+.type-seg input{position:absolute;opacity:0;pointer-events:none}
+.type-seg span{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;border-radius:0;border:1px solid var(--border-strong);font-weight:500;font-size:14px;cursor:pointer;min-height:44px;transition:background-color .15s,border-color .15s}
+.type-seg input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.type-seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.type-seg .ic{width:16px;height:16px}
+form[data-type="note"] .money-only{display:none}
+form:not([data-type="expense"]) .expense-only{display:none}
+.field-row.money-only.solo{grid-template-columns:1fr}
+dialog{border:0;border-radius:0;padding:0;width:min(520px,calc(100vw - 32px));background:var(--surface);color:var(--text);box-shadow:0 24px 70px rgba(0,0,0,.28)}
+dialog::backdrop{background:rgba(20,18,15,.45);backdrop-filter:blur(3px)}
+dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
+@keyframes dlg-in{from{opacity:0;transform:translateY(10px) scale(.98)}}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;padding:18px 16px 4px 22px}
+.dlg-head h2{font-family:var(--font-display);text-transform:none;letter-spacing:-.02em;font-size:19px;color:var(--text);margin:0;font-weight:600}
+.dlg-body{padding:12px 22px 4px;max-height:65vh;overflow:auto}
+.dlg-body>p{color:var(--muted);font-size:15px}
+.dlg-foot{display:flex;gap:8px;align-items:center;padding:14px 22px 18px;border-top:1px solid var(--border);flex-wrap:wrap}
+.spacer{flex:1}
+.dlg-err{color:var(--danger);font-size:14px;margin:0 0 10px;font-weight:500}
+.dlg-err:empty{display:none}
+.note-box{display:flex;gap:10px;padding:12px 14px;border-radius:0;background:var(--warn-soft);font-size:14px;margin-bottom:14px}
+.note-box .ic{color:var(--warn);width:18px;height:18px;margin-top:2px}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--text);color:var(--bg);padding:8px 10px 8px 16px;border-radius:0;display:flex;gap:10px;align-items:center;z-index:100;transition:opacity .2s,transform .2s;max-width:calc(100vw - 32px);box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:15px;min-height:44px}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast-btn{background:transparent;border:0;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:36px;padding:0 8px}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;inset:auto 0 0 0;height:auto;flex-direction:row;padding:4px 6px calc(4px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--border);background:var(--surface);z-index:40;gap:0}
+  .side-foot{display:none}
+  .nav{flex-direction:row;width:100%;justify-content:space-around}
+  .nav li{flex:1}
+  .nav a{flex-direction:column;gap:2px;font-size:12px;padding:6px 2px;justify-content:center;min-height:54px}
+  .nav a[aria-current="page"]{background:transparent}
+  .nav a[aria-current="page"] .ic{background:var(--accent-soft);border-radius:0;width:44px;padding:3px 12px;height:26px}
+  .lbl-long{display:none} .lbl-short{display:inline}
+  .mobile-top{display:flex;justify-content:flex-end;align-items:center;padding:12px 12px 0 16px;gap:4px}
+  .nav-settings{display:none}
+  main{padding:18px 16px calc(100px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(86px + env(safe-area-inset-bottom))}
+  .stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats>.stat:nth-child(3):last-child{grid-column:1/-1}
+  .stat-value{font-size:21px}
+  .field-row{grid-template-columns:1fr}
+  .note-grid{grid-template-columns:1fr}
+  .month-nav .label{min-width:120px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><line x1="17" y1="17" x2="7" y2="7"/><polyline points="7 17 7 7 17 7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+</svg>
+
+<button class="skip" id="skip">Skip to content</button>
+<div class="app">
+  <nav class="side" aria-label="Main">
+    <ul class="nav">
+      <li><a href="#today" data-view="today"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Today</span></a></li>
+      <li><a href="#notes" data-view="notes"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span></a></li>
+      <li><a href="#timeline" data-view="timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Timeline</span></a></li>
+      <li><a href="#budget" data-view="budget"><svg class="ic" aria-hidden="true"><use href="#i-pie"/></svg><span>Budget</span></a></li>
+      <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span class="lbl-long">Subscriptions</span><span class="lbl-short">Subs</span></a></li>
+      <li class="nav-settings"><a href="#settings" data-view="settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span>Settings</span></a></li>
+    </ul>
+    <div class="side-foot">
+      <a class="backup-pill" href="#settings"></a>
+    </div>
+  </nav>
+  <div>
+    <header class="mobile-top">
+      <a class="backup-pill" href="#settings"></a>
+      <a class="icon-btn" href="#settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></a>
+    </header>
+    <main id="main"></main>
+  </div>
+</div>
+<dialog id="dlg" aria-labelledby="dlg-title"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<input type="file" id="restore-file" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+const STORE_KEY = 'daybook.v1';
+const KDF_ITERATIONS = 310000;
+const KEEP_DAILY = 7;
+const CURRENCIES = ['USD','EUR','GBP','AED','SAR','QAR','KWD','BHD','OMR','EGP','JOD','TRY','INR','PKR','CAD','AUD','CHF','JPY'];
+const CAT_COLORS = ['#C2410C','#0F766E','#7C3AED','#B45309','#BE185D','#15803D','#2563EB','#9333EA','#64748B','#0E7490','#A16207'];
+const DEFAULT_CATS = [['food','Food'],['transport','Transport'],['housing','Housing'],['bills','Bills'],['shopping','Shopping'],['health','Health'],['fun','Fun'],['subscriptions','Subscriptions'],['other','Other']];
+const KEYWORDS = {
+  food: 'coffee cafe café lunch dinner breakfast brunch grocery groceries restaurant food snack snacks pizza burger shawarma tea bakery supermarket starbucks mcdonalds kfc talabat deliveroo uber-eats careem-food juice dessert',
+  transport: 'taxi uber careem fuel petrol gas parking bus metro train toll salik car tram flight-taxi',
+  housing: 'rent mortgage furniture maintenance repair cleaning',
+  bills: 'electricity water internet phone mobile wifi bill bills dewa etisalat du utility utilities insurance',
+  shopping: 'clothes shoes amazon noon shopping gift gifts mall shirt jacket electronics',
+  health: 'pharmacy doctor gym medicine dentist clinic hospital vitamins',
+  fun: 'movie movies cinema game games concert trip travel hotel flight tickets party',
+  subscriptions: 'netflix spotify youtube icloud subscription disney chatgpt claude prime shahid osn',
+};
+const INCOME_RE = /\b(salary|income|refund|bonus|paid me|freelance|dividend|cashback|payment received|got paid|wage|wages)\b/i;
+const CYCLES = { weekly:'Weekly', monthly:'Monthly', quarterly:'Every 3 months', yearly:'Yearly' };
+const PER_MONTH = { weekly:52/12, monthly:1, quarterly:1/3, yearly:1/12 };
+
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon = (name, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const daysUntil = s => Math.round((parseYmd(s) - startOfDay(new Date())) / 864e5);
+const sameDay = (a, b) => ymd(new Date(a)) === ymd(new Date(b));
+const byTsDesc = (a, b) => b.ts - a.ts;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const shortDate = s => parseYmd(s).toLocaleDateString(undefined, { day:'numeric', month:'short' });
+const timeOf = ts => new Date(ts).toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+const monthName = (y, m) => new Date(y, m, 1).toLocaleDateString(undefined, { month:'long', year:'numeric' });
+function dayLabel(ts) {
+  const d = new Date(ts), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+  if (sameDay(d, now)) return 'Today';
+  if (sameDay(d, y)) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', ...(d.getFullYear() !== now.getFullYear() && { year:'numeric' }) });
+}
+function ago(ts) {
+  const s = (Date.now() - ts) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return plural(Math.floor(s / 86400), 'day') + ' ago';
+}
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch { return false; } }
+
+let nf = null, nfCur = null;
+function money(n) {
+  const cur = state.settings.currency;
+  if (nfCur !== cur) {
+    try { nf = new Intl.NumberFormat(undefined, { style:'currency', currency:cur }); }
+    catch { nf = new Intl.NumberFormat(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+    nfCur = cur;
+  }
+  return nf.format(Math.round(n * 100) / 100);
+}
+
+/* ---------- state ---------- */
+function freshState() {
+  return {
+    v: 1,
+    settings: { currency:'USD', theme:'auto', welcomed:false },
+    categories: DEFAULT_CATS.map(([id, name], i) => ({ id, name, budget:0, color:CAT_COLORS[i % CAT_COLORS.length] })),
+    entries: [],
+    subs: [],
+  };
+}
+function normalize(s) {
+  const f = freshState();
+  if (!s || typeof s !== 'object') return f;
+  const out = {
+    v: 1,
+    settings: { ...f.settings, ...(s.settings || {}) },
+    categories: Array.isArray(s.categories) && s.categories.length ? s.categories : f.categories,
+    entries: Array.isArray(s.entries) ? s.entries.filter(e => e && e.id && e.type) : [],
+    subs: Array.isArray(s.subs) ? s.subs.filter(x => x && x.id) : [],
+  };
+  if (!out.categories.some(c => c.id === 'other')) out.categories.push({ id:'other', name:'Other', budget:0, color:'#64748B' });
+  return out;
+}
+let state;
+try { state = normalize(JSON.parse(localStorage.getItem(STORE_KEY))); }
+catch { state = freshState(); }
+
+function save() {
+  if (!lsSet(STORE_KEY, JSON.stringify(state))) toast("Couldn't save in this browser. Download a backup from Settings now.");
+  Backup.schedule();
+  render();
+}
+const catById = id => state.categories.find(c => c.id === id) || state.categories.find(c => c.id === 'other');
+const subById = id => state.subs.find(s => s.id === id);
+
+/* ---------- quick capture parsing ---------- */
+const TAG_RE = /#([\p{L}\p{N}_-]+)/gu;
+function amountOf(w) {
+  const m = w.match(/^([+-])?(?:[$€£¥₹]|aed|usd|eur|gbp|sar|qar|kwd)?([+-])?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(k)?$/i);
+  if (!m) return null;
+  const value = parseFloat(m[3].replace(/,/g, '') + (m[4] ? '.' + m[4] : '')) * (m[5] ? 1000 : 1);
+  return { sign: m[1] || m[2] || null, value };
+}
+function guessCat(lower, tags) {
+  for (const t of tags) { const c = state.categories.find(c => c.name.toLowerCase() === t || c.id === t); if (c) return c.id; }
+  const words = lower.split(/[^\p{L}\p{N}-]+/u);
+  for (const [id, list] of Object.entries(KEYWORDS)) {
+    if (!state.categories.some(c => c.id === id)) continue;
+    const set = list.split(' ');
+    if (words.some(w => set.includes(w))) return id;
+  }
+  return 'other';
+}
+function analyze(raw) {
+  const text = raw.trim();
+  const tags = [...new Set([...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase()))];
+  const words = text.split(/\s+/).filter(Boolean);
+  const plain = words.map((w, i) => [w, i]).filter(([w]) => !w.startsWith('#'));
+  let hit = null;
+  for (const pos of [plain.length - 1, 0]) {
+    const it = plain[pos]; if (!it) continue;
+    const a = amountOf(it[0]);
+    // "meeting at 3", "chapter 12", "page 40" are notes, not money.
+    const before = (words[it[1] - 1] || '').toLowerCase();
+    if (a && !a.sign && /^(at|by|on|until|till|around|chapter|page|pages|day|week|room|floor|step|level|part|no\.?|number)$/.test(before)) continue;
+    if (a) { hit = { ...a, i: it[1] }; break; }
+  }
+  const rest = words.filter((w, i) => (!hit || i !== hit.i) && !w.startsWith('#')).join(' ');
+  const lower = rest.toLowerCase();
+  const isMoney = !!hit && hit.value > 0 && words.length <= 10;
+  const guessType = hit?.sign === '+' ? 'income' : hit?.sign === '-' ? 'expense' : INCOME_RE.test(lower) ? 'income' : 'expense';
+  return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType };
+}
+
+/* ---------- capture state ---------- */
+let draft = '', capType = null, capCat = null;
+function preview() {
+  const t = draft.trim(); if (!t) return null;
+  const a = analyze(t);
+  const type = capType || (a.isMoney ? a.guessType : 'note');
+  if (type === 'note') return { type, text: t, tags: a.tags };
+  const label = a.amount != null ? (a.rest || (type === 'income' ? 'Income' : 'Expense')) : t.replace(TAG_RE, '').trim();
+  return { type, text: label, amount: a.amount, cat: type === 'expense' ? (capCat || guessCat(a.lower, a.tags)) : null, tags: a.tags };
+}
+const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'] };
+function previewHTML(p) {
+  if (!p) return '';
+  const [ic, label] = TYPE_META[p.type];
+  let h = `<button type="button" class="chip chip-${p.type}" data-act="cap-type" aria-label="Saving as ${label}. Change type">${icon(ic)}${label}<span class="chip-swap" aria-hidden="true">· change</span></button>`;
+  if (p.type === 'expense') h += `<label class="sr-only" for="cap-cat">Category</label><select id="cap-cat" class="mini-select" data-change="cap-cat">${catOptions(p.cat)}</select>`;
+  if (p.type !== 'note') h += p.amount > 0
+    ? `<span class="cap-amt">${p.type === 'income' ? '+' : '−'}${money(p.amount)}</span>`
+    : `<span class="cap-amt missing">Add an amount, like “lunch 12”</span>`;
+  return h;
+}
+function catOptions(sel) {
+  return state.categories.map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+function updatePreview() {
+  const el = $('#cap-preview'); if (el) el.innerHTML = previewHTML(preview());
+  const b = $('[data-act="cap-save"]'); if (b) b.disabled = !draft.trim();
+}
+function capSave() {
+  const p = preview(); if (!p) return;
+  if (p.type !== 'note' && !(p.amount > 0)) { toast('Add an amount first, like “lunch 12”.'); return; }
+  const e = { id:uid(), type:p.type, text:p.text, amount:p.type === 'note' ? null : p.amount, cat:p.cat || null, tags:p.tags, ts:Date.now(), pinned:false };
+  state.entries.push(e);
+  draft = ''; capType = null; capCat = null;
+  save();
+  const cap = $('#cap'); if (cap) cap.focus();
+  toast(e.type === 'note' ? 'Note saved' : `${e.type === 'income' ? 'Income' : 'Expense'} logged · ${money(e.amount)}`, {
+    action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); save(); },
+  });
+}
+
+/* ---------- numbers ---------- */
+function monthStats(y, m) {
+  const start = new Date(y, m, 1).getTime(), end = new Date(y, m + 1, 1).getTime();
+  const days = new Date(y, m + 1, 0).getDate();
+  const byDay = new Array(days).fill(0), byCat = {};
+  let spent = 0, income = 0;
+  for (const e of state.entries) {
+    if (e.ts < start || e.ts >= end) continue;
+    if (e.type === 'expense') {
+      const cid = catById(e.cat).id;
+      spent += e.amount; byCat[cid] = (byCat[cid] || 0) + e.amount; byDay[new Date(e.ts).getDate() - 1] += e.amount;
+    } else if (e.type === 'income') income += e.amount;
+  }
+  let budget = 0, budgetedSpent = 0;
+  for (const c of state.categories) if (c.budget > 0) { budget += c.budget; budgetedSpent += byCat[c.id] || 0; }
+  return { spent, income, byDay, byCat, budget, left: budget - budgetedSpent, days };
+}
+const activeSubs = () => state.subs.filter(s => s.status === 'active');
+const subsMonthly = () => activeSubs().reduce((t, s) => t + s.amount * (PER_MONTH[s.cycle] || 1), 0);
+const upcomingSubs = days => activeSubs().filter(s => daysUntil(s.next) <= days).sort((a, b) => a.next.localeCompare(b.next));
+function nextDate(s) {
+  const d = parseYmd(s.next);
+  if (s.cycle === 'weekly') { d.setDate(d.getDate() + 7); return ymd(d); }
+  const add = { monthly:1, quarterly:3, yearly:12 }[s.cycle] || 1;
+  const anchor = s.day || d.getDate();
+  const y = d.getFullYear(), m = d.getMonth() + add;
+  return ymd(new Date(y, m, Math.min(anchor, new Date(y, m + 1, 0).getDate())));
+}
+
+/* ---------- shared fragments ---------- */
+function entryItem(e, showDay) {
+  const [ic] = TYPE_META[e.type];
+  const meta = [];
+  if (e.pinned) meta.push(`${icon('pin')}<span>Pinned</span>`);
+  meta.push(`<span>${showDay ? dayLabel(e.ts) + ', ' : ''}${timeOf(e.ts)}</span>`);
+  if (e.type === 'expense') { const c = catById(e.cat); meta.push(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span><span>${esc(c.name)}</span>`); }
+  if (e.type !== 'note') for (const t of e.tags || []) meta.push(`<span>#${esc(t)}</span>`);
+  const amt = e.type === 'note' ? '' : `<span class="amt ${e.type === 'income' ? 'in' : 'out'}">${e.type === 'income' ? '+' : '−'}${money(e.amount)}</span>`;
+  return `<li><button class="entry" data-act="edit" data-id="${e.id}">
+    <span class="entry-ic t-${e.type}">${icon(ic)}</span>
+    <span class="entry-main"><span class="entry-text">${esc(e.text)}</span><span class="entry-meta">${meta.join('<span aria-hidden="true">·</span>')}</span></span>
+    ${amt}</button></li>`;
+}
+function subRow(s) {
+  const d = daysUntil(s.next);
+  const off = s.status !== 'active';
+  const when = off ? (s.status === 'paused' ? 'Paused' : 'Cancelled')
+    : d < 0 ? `Overdue by ${plural(-d, 'day')}` : d === 0 ? 'Due today' : d === 1 ? 'Due tomorrow' : `Renews in ${d} days`;
+  const cls = off ? '' : d < 0 ? 'is-overdue' : d <= 3 ? 'is-soon' : '';
+  return `<li class="sub-row ${cls}">
+    <div class="sub-main"><span class="sub-name">${esc(s.name)}</span>
+      <span class="sub-meta"><span class="when">${when}</span>${off ? '' : ' · ' + shortDate(s.next)} · ${CYCLES[s.cycle] || s.cycle}</span></div>
+    <span class="amt">${money(s.amount)}</span>
+    <div class="row-actions">
+      ${off ? '' : `<button class="btn small secondary" data-act="sub-paid" data-id="${s.id}">${icon('check')}Paid</button>`}
+      <button class="icon-btn" data-act="sub-edit" data-id="${s.id}" aria-label="Edit ${esc(s.name)}">${icon('edit')}</button>
+    </div></li>`;
+}
+function stat(label, value, sub, neg) {
+  return `<div class="card stat"><div class="stat-label">${label}</div><div class="stat-value${neg ? ' neg' : ''}">${value}</div>${sub ? `<div class="stat-sub">${sub}</div>` : ''}</div>`;
+}
+
+/* ---------- views ---------- */
+function vToday() {
+  const now = new Date();
+  const todays = state.entries.filter(e => sameDay(e.ts, now)).sort(byTsDesc);
+  const pinned = state.entries.filter(e => e.pinned && !sameDay(e.ts, now)).sort(byTsDesc);
+  const st = monthStats(now.getFullYear(), now.getMonth());
+  const up = upcomingSubs(7);
+  return `
+  <header class="page-head"><h1 tabindex="-1">${now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' })}</h1></header>
+  <div id="backup-banner">${bannerHTML()}</div>
+  <section class="card capture" aria-label="Quick capture">
+    <label for="cap" class="sr-only">Write a note, or log money like “coffee 4.50”</label>
+    <textarea id="cap" rows="2" placeholder="coffee 4.50 · +3000 salary · or a note">${esc(draft)}</textarea>
+    <div class="cap-bar">
+      <div class="cap-preview" id="cap-preview">${previewHTML(preview())}</div>
+      <button class="btn primary" data-act="cap-save"${draft.trim() ? '' : ' disabled'}>Save</button>
+    </div>
+  </section>
+  <section class="stats" aria-label="This month">
+    ${stat('Spent', money(st.spent))}
+    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)}`, st.left < 0) : stat('Budgets', '—', '<a href="#budget">Set limits</a>')}
+    ${stat('Subscriptions / mo', money(subsMonthly()))}
+  </section>
+  ${up.length ? `<section><h2>Renewing soon</h2><ul class="list card">${up.map(subRow).join('')}</ul></section>` : ''}
+  ${pinned.length ? `<section><h2>Pinned</h2><ul class="list card">${pinned.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}
+  <section><h2>Today</h2>
+    ${todays.length ? `<ul class="list card">${todays.map(e => entryItem(e)).join('')}</ul>`
+      : `<div class="card empty">Nothing yet today</div>`}
+  </section>`;
+}
+
+let nt = { q:'', tag:null }, noteDraft = '';
+function vNotes() {
+  const all = state.entries.filter(e => e.type === 'note').sort(byTsDesc);
+  const counts = {};
+  for (const e of all) for (const t of e.tags || []) counts[t] = (counts[t] || 0) + 1;
+  const topTags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([t]) => t);
+  const q = nt.q.trim().toLowerCase().replace(/^#/, '');
+  let list = all;
+  if (nt.tag) list = list.filter(e => (e.tags || []).includes(nt.tag));
+  if (q) list = list.filter(e => e.text.toLowerCase().includes(q) || (e.tags || []).some(t => t.includes(q)));
+  const pinned = list.filter(e => e.pinned), rest = list.filter(e => !e.pinned);
+  const grid = arr => `<ul class="note-grid">${arr.map(noteTile).join('')}</ul>`;
+  return `
+  <header class="page-head"><h1 tabindex="-1">Notes</h1></header>
+  <section class="card capture" aria-label="New note">
+    <label for="note-new" class="sr-only">New note</label>
+    <textarea id="note-new" rows="3" placeholder="Write a note…">${esc(noteDraft)}</textarea>
+    <div class="cap-bar end"><button class="btn primary" data-act="note-save"${noteDraft.trim() ? '' : ' disabled'}>Save</button></div>
+  </section>
+  ${all.length ? `<div class="toolbar"><div class="search">${icon('search')}<label for="nt-q" class="sr-only">Search notes</label><input id="nt-q" type="search" placeholder="Search" value="${esc(nt.q)}" autocomplete="off"></div></div>` : ''}
+  ${topTags.length ? `<div class="tags" role="group" aria-label="Filter by tag">${topTags.map(t => `<button class="chip" data-act="nt-tag" data-v="${esc(t)}" aria-pressed="${nt.tag === t}">#${esc(t)}</button>`).join('')}</div>` : ''}
+  ${pinned.length ? `<section><h2>Pinned</h2>${grid(pinned)}</section>` : ''}
+  ${rest.length ? `<section>${pinned.length ? '<h2>Others</h2>' : ''}${grid(rest)}</section>` : ''}
+  ${list.length ? '' : `<div class="card empty">${all.length ? 'No matches' : 'No notes yet'}</div>`}`;
+}
+function noteTile(e) {
+  return `<li><button class="note-tile" data-act="edit" data-id="${e.id}">
+    <span class="note-text">${esc(e.text)}</span>
+    <span class="entry-meta">${e.pinned ? icon('pin') : ''}<span>${dayLabel(e.ts)}, ${timeOf(e.ts)}</span></span></button></li>`;
+}
+function noteSave() {
+  const text = noteDraft.trim(); if (!text) return;
+  const e = { id:uid(), type:'note', text, amount:null, cat:null, tags:[...new Set([...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase()))], ts:Date.now(), pinned:false };
+  state.entries.push(e);
+  noteDraft = '';
+  save();
+  $('#note-new')?.focus();
+  toast('Note saved', { action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); save(); } });
+}
+
+let tl = { q:'', filter:'all', tag:null, limit:150 };
+function vTimeline() {
+  const q = tl.q.trim().toLowerCase();
+  let list = [...state.entries].sort(byTsDesc);
+  if (tl.filter === 'notes') list = list.filter(e => e.type === 'note');
+  if (tl.filter === 'money') list = list.filter(e => e.type !== 'note');
+  if (tl.tag) list = list.filter(e => (e.tags || []).includes(tl.tag));
+  if (q) list = list.filter(e => e.text.toLowerCase().includes(q) || (e.tags || []).some(t => t.includes(q.replace(/^#/, ''))) || (e.type === 'expense' && catById(e.cat).name.toLowerCase().includes(q)));
+  const total = list.length;
+  const shown = list.slice(0, tl.limit);
+  const counts = {};
+  for (const e of state.entries) for (const t of e.tags || []) counts[t] = (counts[t] || 0) + 1;
+  const topTags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([t]) => t);
+  const groups = [];
+  for (const e of shown) { const k = ymd(new Date(e.ts)); const g = groups[groups.length - 1]; if (g && g.k === k) g.items.push(e); else groups.push({ k, items:[e] }); }
+  const seg = (v, l) => `<button data-act="tl-filter" data-v="${v}" aria-pressed="${tl.filter === v}">${l}</button>`;
+  return `
+  <header class="page-head"><h1 tabindex="-1">Timeline</h1></header>
+  <div class="toolbar">
+    <div class="search">${icon('search')}<label for="tl-q" class="sr-only">Search notes and spending</label><input id="tl-q" type="search" placeholder="Search" value="${esc(tl.q)}" autocomplete="off"></div>
+    <div class="seg" role="group" aria-label="Show">${seg('all', 'All')}${seg('notes', 'Notes')}${seg('money', 'Money')}</div>
+  </div>
+  ${topTags.length ? `<div class="tags" role="group" aria-label="Filter by tag">${topTags.map(t => `<button class="chip" data-act="tl-tag" data-v="${esc(t)}" aria-pressed="${tl.tag === t}">#${esc(t)}</button>`).join('')}</div>` : ''}
+  ${groups.length ? groups.map(g => `<section class="day-group"><h2>${dayLabel(g.items[0].ts)}</h2><ul class="list card">${g.items.map(e => entryItem(e)).join('')}</ul></section>`).join('')
+    : `<div class="card empty">${state.entries.length ? 'No matches' : 'Nothing here yet'}</div>`}
+  ${total > shown.length ? `<div style="text-align:center"><button class="btn secondary" data-act="tl-more">Show more (${total - shown.length} left)</button></div>` : ''}`;
+}
+
+let bm = { y: new Date().getFullYear(), m: new Date().getMonth() };
+function vBudget() {
+  const { y, m } = bm;
+  const st = monthStats(y, m);
+  const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
+  const net = st.income - st.spent;
+  const cats = state.categories.map(c => ({ c, spent: st.byCat[c.id] || 0 }))
+    .sort((a, b) => (b.c.budget > 0) - (a.c.budget > 0) || b.spent - a.spent);
+  return `
+  <header class="page-head"><h1 tabindex="-1">${monthName(y, m)}</h1>
+    <div class="month-nav"><button class="icon-btn" data-act="month-prev" aria-label="Previous month">${icon('chev-l')}</button>
+      <button class="label" data-act="month-now" ${isNow ? 'disabled' : ''} aria-label="${isNow ? 'This month' : 'Back to this month'}">${isNow ? 'This month' : 'Back to today'}</button>
+      <button class="icon-btn" data-act="month-next" aria-label="Next month">${icon('chev-r')}</button></div>
+  </header>
+  <section class="stats four" aria-label="Summary">
+    ${stat('Spent', money(st.spent))}
+    ${stat('Income', money(st.income))}
+    ${stat('Net', (net < 0 ? '−' : '+') + money(Math.abs(net)), '', net < 0)}
+    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)}`, st.left < 0) : stat('Budgets', '—')}
+  </section>
+  <section><h2>Daily</h2><div class="card chart">${dayChart(st, y, m)}</div></section>
+  <section><div class="section-head"><h2>Categories</h2><button class="link-btn" data-act="cat-add">+ Add</button></div>
+    <ul class="list card">${cats.map(({ c, spent }) => catRow(c, spent)).join('')}</ul>
+  </section>`;
+}
+function catRow(c, spent) {
+  let nums, status = '', meter = '';
+  if (c.budget > 0) {
+    const pct = spent / c.budget * 100, left = c.budget - spent;
+    const cls = pct > 100 ? 'over' : pct >= 80 ? 'warn' : '';
+    nums = `<strong>${money(spent)}</strong> of ${money(c.budget)}`;
+    meter = `<div class="meter ${cls}" role="progressbar" aria-label="${esc(c.name)} budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(pct, 100))}"><span style="width:${Math.min(pct, 100)}%"></span></div>`;
+    status = `<div class="cat-status ${cls}">${cls ? icon('alert') : ''}${pct > 100 ? `Over by ${money(-left)}` : `${money(left)} left`}</div>`;
+  } else {
+    nums = `<strong>${money(spent)}</strong>`;
+  }
+  return `<li><button class="cat-row" data-act="cat-edit" data-id="${esc(c.id)}">
+    <div class="cat-top"><span class="cat-name"><span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span>${esc(c.name)}</span><span class="cat-nums">${nums}</span></div>
+    ${meter}${status}</button></li>`;
+}
+function dayChart(st, y, m) {
+  const max = Math.max(...st.byDay);
+  if (!max) return `<p class="muted" style="margin:6px 0">No spending yet</p>`;
+  const n = st.days, W = n * 12, H = 100;
+  const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
+  const peak = st.byDay.indexOf(max);
+  const bars = st.byDay.map((v, i) => {
+    if (!v) return '';
+    const h = Math.max(3, v / max * (H - 8));
+    const label = new Date(y, m, i + 1).toLocaleDateString(undefined, { day:'numeric', month:'short' });
+    return `<rect class="b${isNow && i === now.getDate() - 1 ? ' today' : ''}" x="${i * 12 + 2}" y="${H - h}" width="8" height="${h}"><title>${label}: ${money(v)}</title></rect>`;
+  }).join('');
+  const peakLabel = new Date(y, m, peak + 1).toLocaleDateString(undefined, { day:'numeric', month:'short' });
+  return `<p class="chart-sum">Peak <strong style="color:var(--text)">${peakLabel} · ${money(max)}</strong></p>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily spending in ${monthName(y, m)}. Biggest day ${peakLabel} at ${money(max)}.">
+      ${bars}<line class="base" x1="0" y1="${H - 0.5}" x2="${W}" y2="${H - 0.5}" vector-effect="non-scaling-stroke"/></svg>
+    <div class="chart-axis" aria-hidden="true"><span>1</span><span>8</span><span>15</span><span>22</span><span>${n}</span></div>`;
+}
+
+function vSubs() {
+  const active = activeSubs().sort((a, b) => a.next.localeCompare(b.next));
+  const others = state.subs.filter(s => s.status !== 'active');
+  const monthly = subsMonthly();
+  const top = [...active].sort((a, b) => b.amount * PER_MONTH[b.cycle] - a.amount * PER_MONTH[a.cycle])[0];
+  return `
+  <header class="page-head"><h1 tabindex="-1">Subscriptions</h1>
+    <button class="btn primary" data-act="sub-add">${icon('plus')}Add</button></header>
+  <section class="stats" aria-label="Totals">
+    ${stat('Per month', money(monthly))}
+    ${stat('Per year', money(monthly * 12))}
+    ${stat('Biggest', top ? esc(top.name) : '—')}
+  </section>
+  <section><h2>Active</h2>
+    ${active.length ? `<ul class="list card">${active.map(subRow).join('')}</ul>`
+      : `<div class="card empty">No subscriptions yet</div>`}
+  </section>
+  ${others.length ? `<details class="more"><summary>Paused & cancelled (${others.length})</summary><ul class="list card" style="margin-top:8px">${others.map(subRow).join('')}</ul></details>` : ''}`;
+}
+
+function vSettings() {
+  const t = state.settings.theme;
+  return `
+  <header class="page-head"><h1 tabindex="-1">Settings</h1></header>
+  <section class="card set-card" aria-labelledby="bk-h">
+    <h3 id="bk-h">Backups</h3>
+    ${backupBody()}
+  </section>
+  <section class="card set-card" aria-labelledby="pref-h">
+    <h3 id="pref-h">Preferences</h3>
+    <div class="pref"><label for="s-cur">Currency</label><select id="s-cur" class="select" data-change="currency">${CURRENCIES.map(c => `<option${c === state.settings.currency ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
+    <div class="pref"><span class="pref-label" id="th-l">Appearance</span><div class="seg" role="group" aria-labelledby="th-l">
+      ${['auto', 'light', 'dark'].map(v => `<button data-act="theme" data-v="${v}" aria-pressed="${t === v}">${v === 'auto' ? 'System' : v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div></div>
+  </section>
+  <section class="card set-card" aria-labelledby="data-h">
+    <h3 id="data-h" style="margin-bottom:12px">Data</h3>
+    <div class="btn-row">
+      <button class="btn secondary" data-act="download">${icon('download')}Download</button>
+      <button class="btn secondary" data-act="restore">${icon('upload')}Restore</button>
+      <span class="spacer"></span>
+      <button class="btn danger-ghost" data-act="erase">${icon('trash')}Erase all</button>
+    </div>
+  </section>`;
+}
+function backupBody() {
+  const B = Backup;
+  if (!window.crypto?.subtle) return `<div class="note-box">${icon('alert')}<span>Open in Edge or Chrome to enable backups.</span></div>`;
+  const pwDone = !!B.key, folderDone = !!B.handle;
+  let status = '';
+  if (B.status === 'ready') status = `<div class="status-line ok">${icon('cloud')}${B.lastAt ? `Backed up ${ago(B.lastAt)}` : 'On'}</div>`;
+  else if (B.status === 'needs-permission') status = `<div class="status-line warn">${icon('alert')}<span style="flex:1">Permission needed</span><button class="btn small primary" data-act="bk-reconnect">Allow</button></div>`;
+  else if (B.status === 'error') status = `<div class="status-line warn">${icon('alert')}<span style="flex:1">Last backup failed: ${esc(B.error)}</span></div>`;
+  const folderStep = B.supported
+    ? `<div class="step ${folderDone ? 'done' : ''}"><span class="step-num">${folderDone ? icon('check') : '2'}</span><div class="step-body">
+        <strong>Folder</strong>
+        <p>${folderDone ? esc(B.handle.name) : 'Pick one inside OneDrive'}</p>
+        <button class="btn ${folderDone ? 'secondary small' : 'primary'}" data-act="bk-folder" ${pwDone ? '' : 'disabled'}>${icon('folder')}${folderDone ? 'Change folder' : 'Choose folder'}</button>
+      </div></div>`
+    : `<div class="note-box">${icon('alert')}<span>Auto backups need Edge or Chrome. Use Download instead.</span></div>`;
+  return `${status}
+    <div class="step ${pwDone ? 'done' : ''}"><span class="step-num">${pwDone ? icon('check') : '1'}</span><div class="step-body">
+      <strong>Password</strong>
+      <p>${pwDone ? 'Encrypted' : "Write it down. It can't be recovered."}</p>
+      <button class="btn ${pwDone ? 'secondary small' : 'primary'}" data-act="bk-password">${icon('lock')}${pwDone ? 'Change password' : 'Set password'}</button>
+    </div></div>
+    ${folderStep}
+    ${B.status === 'ready' ? `<div class="btn-row" style="margin-top:6px"><button class="btn secondary small" data-act="bk-now">${icon('cloud')}Back up now</button></div>` : ''}`;
+}
+function bannerHTML() {
+  const B = Backup;
+  if (B.status === 'needs-permission') return `<div class="banner">${icon('alert')}<p>Backup paused</p><button class="btn small primary" data-act="bk-reconnect">Allow</button></div>`;
+  if (B.status === 'error') return `<div class="banner">${icon('alert')}<p>Backup failed</p><a class="btn small secondary" href="#settings">Details</a></div>`;
+  if ((B.status === 'no-password' || B.status === 'no-folder') && state.entries.length + state.subs.length >= 3)
+    return `<div class="banner info">${icon('cloud-off')}<p>Backups are off</p><a class="btn small primary" href="#settings">Set up</a></div>`;
+  return '';
+}
+
+/* ---------- render & routing ---------- */
+const VIEWS = { today:vToday, notes:vNotes, timeline:vTimeline, budget:vBudget, subs:vSubs, settings:vSettings };
+let view = 'today';
+const main = $('#main');
+function render() {
+  const ae = document.activeElement;
+  const id = ae && main.contains(ae) ? ae.id : null;
+  const sel = id && typeof ae.selectionStart === 'number' ? [ae.selectionStart, ae.selectionEnd] : null;
+  main.innerHTML = VIEWS[view]();
+  if (id) { const el = document.getElementById(id); if (el) { el.focus({ preventScroll:true }); if (sel) try { el.setSelectionRange(...sel); } catch {} } }
+  for (const t of $$('#cap, #note-new')) autoGrow(t);
+  renderChrome();
+}
+function renderChrome() {
+  const B = Backup;
+  let cls = '', ic = 'cloud-off', txt = 'Backups off';
+  if (B.status === 'ready') { cls = 'ok'; ic = 'cloud'; txt = B.lastAt ? `Backed up ${ago(B.lastAt)}` : 'Backups on'; }
+  else if (B.status === 'needs-permission' || B.status === 'error') { cls = 'warn'; ic = 'alert'; txt = B.status === 'error' ? 'Backup failed' : 'Reconnect backup'; }
+  else if (B.status === 'manual') { txt = 'Manual backups'; }
+  for (const p of $$('.backup-pill')) { p.className = 'backup-pill ' + cls; p.innerHTML = icon(ic) + `<span>${txt}</span>`; p.setAttribute('aria-label', `Backup status: ${txt}. Open settings`); }
+  const b = $('#backup-banner'); if (b) b.innerHTML = bannerHTML();
+}
+function route(focus) {
+  const h = location.hash.slice(1);
+  view = VIEWS[h] ? h : 'today';
+  for (const a of $$('.nav a')) { if (a.dataset.view === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
+  render();
+  window.scrollTo(0, 0);
+  if (focus) $('#main h1')?.focus();
+}
+function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function applyTheme() {
+  const t = state.settings.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, opts = {}) {
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span>` + (opts.action ? `<button class="toast-btn">${esc(opts.action)}</button>` : '');
+  t.classList.add('show');
+  const hide = () => t.classList.remove('show');
+  if (opts.action) t.querySelector('button').onclick = () => { opts.onAction(); hide(); };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hide, opts.action ? 6000 : 3500);
+}
+
+/* ---------- dialogs ---------- */
+const dlg = $('#dlg');
+function openDialog({ title, body, submit = 'Save', extra = '', onSubmit, submitClass = 'primary' }) {
+  dlg.innerHTML = `<form method="dialog" novalidate>
+    <header class="dlg-head"><h2 id="dlg-title">${title}</h2><button type="button" class="icon-btn" data-close aria-label="Close">${icon('x')}</button></header>
+    <div class="dlg-body">${body}<p class="dlg-err" role="alert"></p></div>
+    <footer class="dlg-foot">${extra}<span class="spacer"></span><button type="button" class="btn ghost" data-close>Cancel</button><button type="submit" class="btn ${submitClass}">${submit}</button></footer></form>`;
+  const form = $('form', dlg);
+  form.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const btn = $('button[type=submit]', form);
+    btn.classList.add('loading');
+    try { if (await onSubmit(new FormData(form), form) !== false) dlg.close(); }
+    finally { btn.classList.remove('loading'); }
+  });
+  for (const b of $$('[data-close]', form)) b.onclick = () => dlg.close();
+  dlg.showModal();
+  $('.dlg-body input:not([type=radio]):not([type=checkbox]), .dlg-body textarea', form)?.focus();
+  return form;
+}
+const formErr = (form, msg) => { $('.dlg-err', form).textContent = msg; return false; };
+const parseTags = s => [...new Set(String(s || '').split(/[\s,]+/).map(t => t.replace(/^#/, '').toLowerCase()).filter(Boolean))];
+
+function editEntry(id) {
+  const e = state.entries.find(x => x.id === id); if (!e) return;
+  const d = new Date(e.ts);
+  const local = `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const radio = (v) => { const [ic, l] = TYPE_META[v]; return `<label><input type="radio" name="type" value="${v}"${e.type === v ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
+  const form = openDialog({
+    title: 'Edit entry',
+    body: `<fieldset class="type-seg"><legend class="sr-only">Type</legend>${radio('note')}${radio('expense')}${radio('income')}</fieldset>
+      <label class="field"><span>${e.type === 'note' ? 'Note' : 'Description'}</span><textarea name="text" rows="3" required>${esc(e.text)}</textarea></label>
+      <div class="field-row money-only"><label class="field"><span>Amount (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e.amount ?? ''}"></label>
+        <label class="field expense-only"><span>Category</span><select name="cat">${catOptions(catById(e.cat).id)}</select></label></div>
+      <div class="field-row"><label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${local}" required></label>
+        <label class="field"><span>Tags</span><input name="tags" value="${esc((e.tags || []).join(', '))}" placeholder="work, travel" autocomplete="off"></label></div>
+      <label class="check"><input type="checkbox" name="pinned"${e.pinned ? ' checked' : ''}>Pin to Today</label>`,
+    extra: `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>`,
+    onSubmit(fd, form) {
+      const type = fd.get('type'), text = String(fd.get('text')).trim(), amount = parseFloat(fd.get('amount'));
+      if (!text) return formErr(form, 'Write something first.');
+      if (type !== 'note' && !(amount > 0)) return formErr(form, 'Enter an amount above zero.');
+      const ts = new Date(fd.get('ts')).getTime();
+      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
+      Object.assign(e, { type, text, amount: type === 'note' ? null : amount, cat: type === 'expense' ? fd.get('cat') : null,
+        ts, tags: type === 'note' ? [...new Set([...parseTags(fd.get('tags')), ...[...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase())])] : parseTags(fd.get('tags')),
+        pinned: fd.get('pinned') === 'on' });
+      save(); toast('Saved');
+    },
+  });
+  form.dataset.type = e.type;
+  form.addEventListener('change', ev => { if (ev.target.name === 'type') form.dataset.type = ev.target.value; });
+  $('[data-del]', form).onclick = () => {
+    const idx = state.entries.indexOf(e);
+    state.entries.splice(idx, 1); dlg.close(); save();
+    toast('Entry deleted', { action:'Undo', onAction() { state.entries.splice(idx, 0, e); save(); } });
+  };
+}
+
+function editSub(id) {
+  const s = id ? subById(id) : null;
+  const v = s || { name:'', amount:'', cycle:'monthly', next: ymd(new Date()), cat:'subscriptions', status:'active' };
+  const form = openDialog({
+    title: s ? 'Edit subscription' : 'Add subscription',
+    submit: s ? 'Save' : 'Add',
+    body: `<label class="field"><span>Name</span><input name="name" value="${esc(v.name)}" placeholder="Netflix, gym, phone plan…" required autocomplete="off"></label>
+      <div class="field-row"><label class="field"><span>Price (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
+        <label class="field"><span>Billed</span><select name="cycle">${Object.entries(CYCLES).map(([k, l]) => `<option value="${k}"${v.cycle === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
+      <div class="field-row"><label class="field"><span>Next renewal</span><input name="next" type="date" value="${v.next}" required></label>
+        <label class="field"><span>Category</span><select name="cat">${catOptions(catById(v.cat).id)}</select></label></div>
+      ${s ? `<label class="field"><span>Status</span><select name="status">${['active', 'paused', 'cancelled'].map(x => `<option value="${x}"${v.status === x ? ' selected' : ''}>${x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>` : ''}`,
+    extra: s ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
+    onSubmit(fd, form) {
+      const name = String(fd.get('name')).trim(), amount = parseFloat(fd.get('amount')), next = fd.get('next');
+      if (!name) return formErr(form, 'Give it a name.');
+      if (!(amount > 0)) return formErr(form, 'Enter a price above zero.');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return formErr(form, 'Pick the next renewal date.');
+      const data = { name, amount, cycle: fd.get('cycle'), next, day: parseYmd(next).getDate(), cat: fd.get('cat'), status: fd.get('status') || 'active' };
+      if (s) Object.assign(s, data); else state.subs.push({ id:uid(), ...data });
+      save(); toast(s ? 'Saved' : `${name} added`);
+    },
+  });
+  if (s) $('[data-del]', form).onclick = () => {
+    const idx = state.subs.indexOf(s);
+    state.subs.splice(idx, 1); dlg.close(); save();
+    toast(`${s.name} deleted`, { action:'Undo', onAction() { state.subs.splice(idx, 0, s); save(); } });
+  };
+}
+function subPaid(id) {
+  const s = subById(id); if (!s) return;
+  const prev = s.next;
+  const e = { id:uid(), type:'expense', text:s.name, amount:s.amount, cat:s.cat || 'subscriptions', tags:['subscription'], ts:Date.now(), pinned:false, subId:s.id };
+  state.entries.push(e);
+  s.next = nextDate(s);
+  save();
+  toast(`${s.name} logged · next on ${shortDate(s.next)}`, { action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); s.next = prev; save(); } });
+}
+
+function editCat(id) {
+  const c = id ? state.categories.find(x => x.id === id) : null;
+  const form = openDialog({
+    title: c ? esc(c.name) : 'New category',
+    submit: c ? 'Save' : 'Add',
+    body: `<label class="field"><span>Name</span><input name="name" value="${esc(c?.name || '')}" required autocomplete="off"></label>
+      <label class="field"><span>Monthly limit (${esc(state.settings.currency)})</span><input name="budget" type="number" step="1" min="0" inputmode="decimal" value="${c?.budget || ''}" placeholder="No limit"></label>`,
+    extra: c && c.id !== 'other' ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
+    onSubmit(fd, form) {
+      const name = String(fd.get('name')).trim(), budget = parseFloat(fd.get('budget')) || 0;
+      if (!name) return formErr(form, 'Give it a name.');
+      if (budget < 0) return formErr(form, 'The limit can’t be negative.');
+      if (state.categories.some(x => x !== c && x.name.toLowerCase() === name.toLowerCase())) return formErr(form, 'You already have a category with that name.');
+      if (c) Object.assign(c, { name, budget });
+      else state.categories.splice(state.categories.length - 1, 0, { id:uid(), name, budget, color:CAT_COLORS[state.categories.length % CAT_COLORS.length] });
+      save();
+    },
+  });
+  const del = $('[data-del]', form);
+  if (del) del.onclick = () => {
+    if (!confirm(`Delete “${c.name}”? Its spending moves to Other.`)) return;
+    for (const e of state.entries) if (e.cat === c.id) e.cat = 'other';
+    for (const s of state.subs) if (s.cat === c.id) s.cat = 'other';
+    state.categories = state.categories.filter(x => x !== c);
+    dlg.close(); save(); toast(`${c.name} deleted`);
+  };
+}
+
+/* ---------- IndexedDB (backup folder + key live here) ---------- */
+let dbP;
+function idb() {
+  return dbP ||= new Promise((res, rej) => {
+    const r = indexedDB.open('daybook', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbSet(k, v) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+
+/* ---------- encryption ---------- */
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf) { const b = new Uint8Array(buf); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { const bin = atob(s); const b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
+async function deriveKey(pw, salt, iterations) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations, hash:'SHA-256' }, base, { name:'AES-GCM', length:256 }, false, ['encrypt', 'decrypt']);
+}
+async function encryptState({ key, salt, iterations }) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, te.encode(JSON.stringify(state)));
+  return { app:'daybook', format:1, encrypted:true, createdAt:new Date().toISOString(),
+    kdf:{ name:'PBKDF2', hash:'SHA-256', iterations, salt:b64(salt) }, cipher:'AES-GCM', iv:b64(iv), data:b64(ct) };
+}
+async function decryptBackup(obj, pw) {
+  const salt = unb64(obj.kdf.salt), iterations = obj.kdf.iterations;
+  const key = await deriveKey(pw, salt, iterations);
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:unb64(obj.iv) }, key, unb64(obj.data));
+  return { data: JSON.parse(td.decode(pt)), keyInfo: { key, salt, iterations } };
+}
+
+/* ---------- backups ---------- */
+const Backup = {
+  supported: typeof window.showDirectoryPicker === 'function',
+  handle: null, keyInfo: null, lastAt: Number(lsGet('daybook.lastBackup')) || 0,
+  status: 'no-password', error: '', timer: null, running: false, pending: false,
+  get key() { return this.keyInfo?.key; },
+  async init() {
+    try { this.handle = (await idbGet('dir')) || null; this.keyInfo = (await idbGet('key')) || null; } catch {}
+    await this.refresh();
+    if (this.status === 'ready' && Date.now() - this.lastAt > 864e5) this.schedule();
+  },
+  async refresh() {
+    if (!this.key) this.status = 'no-password';
+    else if (!this.supported) this.status = 'manual';
+    else if (!this.handle) this.status = 'no-folder';
+    else {
+      let p = 'denied';
+      try { p = await this.handle.queryPermission({ mode:'readwrite' }); } catch {}
+      this.status = p === 'granted' ? (this.error ? 'error' : 'ready') : 'needs-permission';
+    }
+    renderChrome();
+    if (view === 'settings') render();
+  },
+  schedule() {
+    if (this.status !== 'ready' && this.status !== 'error') return;
+    clearTimeout(this.timer); this.pending = true;
+    this.timer = setTimeout(() => this.run(), 3000);
+  },
+  async run() {
+    clearTimeout(this.timer); this.pending = false;
+    if (!this.key || !this.handle) return false;
+    if (this.running) { this.pending = true; return false; }
+    // Never overwrite a good backup with an empty Daybook.
+    if (!state.entries.length && !state.subs.length) return false;
+    this.running = true;
+    try {
+      if (await this.handle.queryPermission({ mode:'readwrite' }) !== 'granted') { this.status = 'needs-permission'; return false; }
+      const text = JSON.stringify(await encryptState(this.keyInfo));
+      await writeFile(this.handle, 'daybook-backup.json', text);
+      await writeFile(this.handle, `daybook-${ymd(new Date())}.json`, text);
+      await pruneDaily(this.handle);
+      this.lastAt = Date.now(); lsSet('daybook.lastBackup', String(this.lastAt));
+      this.error = ''; this.status = 'ready';
+      return true;
+    } catch (err) {
+      this.error = err?.message || String(err); this.status = 'error';
+      return false;
+    } finally {
+      this.running = false;
+      renderChrome();
+      if (view === 'settings') render();
+      if (this.pending) this.schedule();
+    }
+  },
+  async setPassword(pw) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    await this.adoptKey({ key: await deriveKey(pw, salt, KDF_ITERATIONS), salt, iterations: KDF_ITERATIONS });
+  },
+  async adoptKey(keyInfo) {
+    this.keyInfo = keyInfo;
+    try { await idbSet('key', keyInfo); } catch {}
+    await this.refresh();
+    if (this.status === 'ready') this.run();
+  },
+  async chooseFolder() {
+    let h;
+    try { h = await window.showDirectoryPicker({ id:'daybook-backup', mode:'readwrite', startIn:'documents' }); }
+    catch (err) { if (err?.name !== 'AbortError') toast("Couldn't use that folder. Try another one."); return; }
+    this.handle = h; this.error = '';
+    try { await idbSet('dir', h); } catch {}
+    await this.refresh();
+    if (this.status === 'ready') { const ok = await this.run(); toast(ok ? `Backed up to “${h.name}”` : `Backups will save to “${h.name}”`); }
+  },
+  async reconnect() {
+    if (!this.handle) return;
+    try { await this.handle.requestPermission({ mode:'readwrite' }); } catch {}
+    this.error = '';
+    await this.refresh();
+    if (this.status === 'ready') { await this.run(); toast('Backups reconnected'); }
+  },
+};
+async function writeFile(dir, name, text) {
+  const fh = await dir.getFileHandle(name, { create:true });
+  const w = await fh.createWritable();
+  await w.write(text); await w.close();
+}
+async function pruneDaily(dir) {
+  const names = [];
+  for await (const [name, h] of dir.entries()) if (h.kind === 'file' && /^daybook-\d{4}-\d{2}-\d{2}\.json$/.test(name)) names.push(name);
+  names.sort().reverse();
+  for (const n of names.slice(KEEP_DAILY)) await dir.removeEntry(n);
+}
+
+function passwordDialog() {
+  const changing = !!Backup.key;
+  openDialog({
+    title: changing ? 'Change backup password' : 'Set backup password',
+    submit: changing ? 'Change password' : 'Set password',
+    body: `<div class="note-box">${icon('alert')}<span><strong>Write it down.</strong> It can't be recovered.</span></div>
+      <label class="field"><span>Password (8+ characters)</span><input name="pw" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="field"><span>Confirm</span><input name="pw2" type="password" autocomplete="new-password" required></label>`,
+    async onSubmit(fd, form) {
+      const pw = String(fd.get('pw')), pw2 = String(fd.get('pw2'));
+      if (pw.length < 8) return formErr(form, 'Use at least 8 characters.');
+      if (pw !== pw2) return formErr(form, "The two passwords don't match.");
+      await Backup.setPassword(pw);
+      toast(changing ? 'Password changed' : Backup.supported ? 'Password set. Now choose a folder.' : 'Password set');
+    },
+  });
+}
+
+async function downloadBackup() {
+  let obj;
+  if (Backup.key) obj = await encryptState(Backup.keyInfo);
+  else {
+    if (!confirm("You haven't set a backup password, so anyone who opens this file can read it. Download anyway?\n\n(Set a password in Settings → Automatic backups to encrypt it.)")) return;
+    obj = { app:'daybook', format:1, encrypted:false, createdAt:new Date().toISOString(), data:state };
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj)], { type:'application/json' }));
+  a.download = `daybook-${ymd(new Date())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function restoreFromFile(file) {
+  let obj;
+  try { obj = JSON.parse(await file.text()); } catch { obj = null; }
+  if (!obj || obj.app !== 'daybook') { toast("That file isn't a Daybook backup."); return; }
+  if (!obj.encrypted) { applyRestore(obj.data, obj.createdAt); return; }
+  openDialog({
+    title: 'Unlock backup',
+    submit: 'Unlock',
+    body: `
+      <label class="field"><span>Backup password</span><input name="pw" type="password" autocomplete="current-password" required></label>`,
+    async onSubmit(fd, form) {
+      let r;
+      try { r = await decryptBackup(obj, String(fd.get('pw'))); }
+      catch { return formErr(form, 'Wrong password, or the file is damaged. Try again.'); }
+      applyRestore(r.data, obj.createdAt, r.keyInfo);
+    },
+  });
+}
+function applyRestore(data, when, keyInfo) {
+  const n = normalize(data);
+  const whenTxt = when ? new Date(when).toLocaleString() : 'an unknown date';
+  if (!confirm(`Restore the backup from ${whenTxt}?\n\nIt has ${n.entries.length} entries and ${n.subs.length} subscriptions. Everything currently in Daybook on this device will be replaced.`)) return;
+  state = n; applyTheme(); save();
+  if (keyInfo && !Backup.key) { Backup.adoptKey(keyInfo); toast('Restored. Your backup password is set too — choose a folder to keep backing up.'); }
+  else toast('Backup restored');
+}
+function eraseDialog() {
+  openDialog({
+    title: 'Erase all data?',
+    submit: 'Erase everything', submitClass: 'danger',
+    body: `<p>Backup files are kept.</p>
+      <label class="field"><span>Type <strong>ERASE</strong> to confirm</span><input name="c" autocomplete="off" required></label>`,
+    onSubmit(fd, form) {
+      if (String(fd.get('c')).trim() !== 'ERASE') return formErr(form, 'Type ERASE in capitals to confirm.');
+      const theme = state.settings.theme, currency = state.settings.currency;
+      state = freshState(); Object.assign(state.settings, { theme, currency, welcomed:true });
+      draft = ''; save(); toast('Daybook is empty');
+    },
+  });
+}
+
+/* ---------- events ---------- */
+const ACTIONS = {
+  'cap-save': capSave,
+  'cap-type'() {
+    const order = ['note', 'expense', 'income'];
+    const cur = preview()?.type || 'note';
+    capType = order[(order.indexOf(cur) + 1) % 3];
+    updatePreview();
+  },
+  'edit': (el) => editEntry(el.dataset.id),
+  'note-save': noteSave,
+  'nt-tag'(el) { nt.tag = nt.tag === el.dataset.v ? null : el.dataset.v; render(); },
+  'sub-add': () => editSub(),
+  'sub-edit': (el) => editSub(el.dataset.id),
+  'sub-paid': (el) => subPaid(el.dataset.id),
+  'tl-filter'(el) { tl.filter = el.dataset.v; tl.limit = 150; render(); },
+  'tl-tag'(el) { tl.tag = tl.tag === el.dataset.v ? null : el.dataset.v; tl.limit = 150; render(); },
+  'tl-more'() { tl.limit += 150; render(); },
+  'month-prev'() { bm = { y: bm.m ? bm.y : bm.y - 1, m: (bm.m + 11) % 12 }; render(); },
+  'month-next'() { bm = { y: bm.m === 11 ? bm.y + 1 : bm.y, m: (bm.m + 1) % 12 }; render(); },
+  'month-now'() { const d = new Date(); bm = { y:d.getFullYear(), m:d.getMonth() }; render(); },
+  'cat-edit': (el) => editCat(el.dataset.id),
+  'cat-add': () => editCat(),
+  'theme'(el) { state.settings.theme = el.dataset.v; applyTheme(); save(); },
+  'bk-password': passwordDialog,
+  'bk-folder': () => Backup.chooseFolder(),
+  'bk-reconnect': () => Backup.reconnect(),
+  async 'bk-now'(el) { el.classList.add('loading'); const ok = await Backup.run(); toast(ok ? 'Backed up' : 'Backup failed. See Settings.'); },
+  'download': downloadBackup,
+  'restore'() { const f = $('#restore-file'); f.value = ''; f.click(); },
+  'erase': eraseDialog,
+};
+main.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]');
+  if (el && !el.disabled && ACTIONS[el.dataset.act]) ACTIONS[el.dataset.act](el, ev);
+});
+main.addEventListener('change', ev => {
+  const k = ev.target.dataset.change;
+  if (k === 'cap-cat') { capCat = ev.target.value; updatePreview(); }
+  if (k === 'currency') { state.settings.currency = ev.target.value; save(); }
+});
+main.addEventListener('input', ev => {
+  if (ev.target.id === 'cap') {
+    draft = ev.target.value;
+    if (!draft.trim()) { capType = null; capCat = null; }
+    autoGrow(ev.target); updatePreview();
+  } else if (ev.target.id === 'note-new') {
+    noteDraft = ev.target.value;
+    autoGrow(ev.target);
+    $('[data-act="note-save"]').disabled = !noteDraft.trim();
+  } else if (ev.target.id === 'nt-q') { nt.q = ev.target.value; render(); }
+  else if (ev.target.id === 'tl-q') { tl.q = ev.target.value; tl.limit = 150; render(); }
+});
+main.addEventListener('keydown', ev => {
+  if (ev.target.id === 'cap' && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); capSave(); }
+  if (ev.target.id === 'note-new' && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); noteSave(); }
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key !== '/' || ev.ctrlKey || ev.metaKey || dlg.open) return;
+  const t = ev.target; if (t.matches('input,textarea,select,[contenteditable]')) return;
+  ev.preventDefault();
+  if (view !== 'today') location.hash = 'today';
+  setTimeout(() => $('#cap')?.focus(), 0);
+});
+$('#restore-file').addEventListener('change', ev => { const f = ev.target.files[0]; if (f) restoreFromFile(f); });
+$('#skip').addEventListener('click', () => $('#main h1')?.focus());
+window.addEventListener('hashchange', () => route(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden && Backup.pending) Backup.run(); });
+window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = normalize(JSON.parse(ev.newValue)); render(); } });
+setInterval(renderChrome, 60000);
+
+applyTheme();
+route(false);
+Backup.init();
+// Offline + installable only on the real https site, so local testing never serves stale files.
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

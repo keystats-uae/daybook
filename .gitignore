@@ -1,0 +1,5 @@
+# Only the app itself is published. Local tooling and notes stay on this PC.
+.claude/
+DESIGN-BRIEF.md
+*.json
+!manifest.webmanifest
