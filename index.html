@@ -273,6 +273,7 @@ details.more summary{cursor:pointer;color:var(--muted);font-weight:500;font-size
 .type-seg .ic{width:16px;height:16px}
 form[data-type="note"] .money-only{display:none}
 form:not([data-type="expense"]) .expense-only{display:none}
+form:not([data-type="income"]) .income-only{display:none}
 .field-row.solo{grid-template-columns:1fr}
 dialog{border:0;border-radius:0;padding:0;width:min(520px,calc(100vw - 32px));background:var(--surface);color:var(--text);box-shadow:0 24px 70px rgba(0,0,0,.28)}
 dialog::backdrop{background:rgba(20,18,15,.45);backdrop-filter:blur(3px)}
@@ -932,6 +933,9 @@ function vBudget() {
     ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)}`, st.left < 0) : stat('Budgets', '—')}
   </section>
   ${reviewHTML(st, y, m)}
+  <section><div class="section-head"><h2>Monthly income</h2><button class="link-btn" data-act="rec-add" data-v="income">+ Add</button></div>
+    ${recList('income', 'Salary and other income — added automatically')}
+  </section>
   <section><h2>Daily</h2><div class="card chart">${dayChart(st, y, m)}</div></section>
   <section><div class="section-head"><h2>Categories</h2><button class="link-btn" data-act="cat-add">+ Add</button></div>
     <ul class="list card">${cats.map(({ c, spent }) => catRow(c, spent)).join('')}</ul>
@@ -1032,16 +1036,20 @@ function vSubs() {
       : `<div class="card empty">No subscriptions yet</div>`}
   </section>
   ${others.length ? `<details class="more"><summary>Paused & cancelled (${others.length})</summary><ul class="list card" style="margin-top:8px">${others.map(subRow).join('')}</ul></details>` : ''}
-  <section style="margin-top:28px"><div class="section-head"><h2>Recurring</h2><button class="link-btn" data-act="rec-add">+ Add</button></div>
-    ${state.recurring.length ? `<ul class="list card">${[...state.recurring].sort((a, b) => (a.status === 'paused') - (b.status === 'paused') || a.next.localeCompare(b.next)).map(recRow).join('')}</ul>`
-      : `<div class="card empty">Salary, rent, bills — logged automatically</div>`}
+  <section style="margin-top:28px"><div class="section-head"><h2>Recurring bills</h2><button class="link-btn" data-act="rec-add" data-v="expense">+ Add</button></div>
+    ${recList('expense', 'Rent, bills — logged automatically')}
   </section>`;
+}
+function recList(type, empty) {
+  const list = state.recurring.filter(r => r.type === type).sort((a, b) => (a.status === 'paused') - (b.status === 'paused') || a.next.localeCompare(b.next));
+  return list.length ? `<ul class="list card">${list.map(recRow).join('')}</ul>` : `<div class="card empty">${empty}</div>`;
 }
 function recRow(r) {
   const off = r.status === 'paused';
+  const toSave = r.type === 'income' && r.saveAmt > 0 ? ` · ${money(r.saveAmt)} to ${esc(goalById(r.saveGoal)?.name || 'savings')}` : '';
   return `<li><button class="sub-row entry" data-act="rec-edit" data-id="${esc(r.id)}" style="padding-right:16px">
     <span class="sub-main"><span class="sub-name">${esc(r.text)}</span>
-      <span class="sub-meta">${off ? 'Paused' : 'Next ' + shortDate(r.next)} · ${CYCLES[r.cycle] || r.cycle}</span></span>
+      <span class="sub-meta">${off ? 'Paused' : 'Next ' + shortDate(r.next)} · ${CYCLES[r.cycle] || r.cycle}${toSave}</span></span>
     <span class="amt ${r.type === 'income' ? 'in' : 'out'}">${r.type === 'income' ? '+' : '−'}${money(r.amount)}</span></button></li>`;
 }
 
@@ -1090,6 +1098,7 @@ function vSavings() {
   const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const savedBy = {};
   let total = 0, month = 0;
+  for (const g of state.goals) if (g.start) { savedBy[g.id] = g.start; total += g.start; }
   for (const e of state.entries) if (e.type === 'save') {
     savedBy[e.goal] = (savedBy[e.goal] || 0) + e.amount;
     total += e.amount;
@@ -1274,27 +1283,29 @@ function openDialog({ title, body, submit = 'Save', extra = '', onSubmit, submit
 const formErr = (form, msg) => { $('.dlg-err', form).textContent = msg; return false; };
 const parseTags = s => [...new Set(String(s || '').split(/[\s,]+/).map(t => t.replace(/^#/, '').toLowerCase()).filter(Boolean))];
 
+// Saved amount = money saved before Daybook (`start`) plus every deposit and withdrawal.
+const goalSaved = g => (g.start || 0) + state.entries.reduce((t, e) => t + (e.type === 'save' && e.goal === g.id ? e.amount : 0), 0);
 function editGoal(id) {
   const g = id ? goalById(id) : null;
+  const saved = g ? Math.round(goalSaved(g) * 100) / 100 : 0;
   const form = openDialog({
     title: g ? 'Edit goal' : 'New goal',
     submit: g ? 'Save' : 'Add',
     body: `<label class="field"><span>Name</span><input name="name" value="${esc(g?.name || '')}" placeholder="Emergency fund, car, travel…" required autocomplete="off"></label>
       <div class="field-row"><label class="field"><span>Target (${esc(state.settings.currency)})</span><input name="target" type="number" step="1" min="0" inputmode="decimal" value="${g?.target || ''}" placeholder="Optional"></label>
         <label class="field"><span>By</span><input name="date" type="date" value="${g?.date || ''}"></label></div>
-      ${g ? '' : `<label class="field"><span>Already saved</span><input name="start" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>`}`,
+      <label class="field"><span>${g ? 'Saved so far' : 'Already saved'} (${esc(state.settings.currency)})</span><input name="start" type="number" step="0.01" min="0" inputmode="decimal" value="${g ? saved : ''}" placeholder="0"></label>
+      <p class="help">Include money you saved before using Daybook.</p>`,
     extra: g ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
     onSubmit(fd, form) {
       const name = String(fd.get('name')).trim(), target = parseFloat(fd.get('target')) || 0, date = fd.get('date') || null;
       if (!name) return formErr(form, 'Give it a name.');
       if (target < 0) return formErr(form, 'The target can’t be negative.');
-      if (g) Object.assign(g, { name, target, date });
-      else {
-        const ng = { id:uid(), name, target, date, ts:Date.now() };
-        state.goals.push(ng);
-        const start = parseFloat(fd.get('start')) || 0;
-        if (start > 0) state.entries.push({ id:uid(), type:'save', text:name, amount:start, goal:ng.id, tags:[], ts:Date.now(), pinned:false });
-      }
+      const now = parseFloat(fd.get('start')) || 0;
+      if (now < 0) return formErr(form, 'The saved amount can’t be negative.');
+      // Changing "saved so far" adjusts the starting amount, so deposit history stays as it was.
+      if (g) Object.assign(g, { name, target, date, start: Math.round(((g.start || 0) + now - saved) * 100) / 100 });
+      else state.goals.push({ id:uid(), name, target, date, start:now, ts:Date.now() });
       save(); toast(g ? 'Saved' : `${name} added`);
     },
   });
@@ -1560,20 +1571,22 @@ function payDebt(id) {
   });
 }
 
-function editRecurring(id) {
+function editRecurring(id, type = 'expense') {
   const r = id ? state.recurring.find(x => x.id === id) : null;
-  const v = r || { type:'expense', text:'', amount:'', cycle:'monthly', next:ymd(new Date()), cat:'housing', acct:defaultAcct(), status:'active' };
+  const v = r || { type, text:'', amount:'', cycle:'monthly', next:ymd(new Date()), cat:'housing', acct:defaultAcct(), status:'active' };
   const radio = t => { const [ic, l] = TYPE_META[t]; return `<label><input type="radio" name="type" value="${t}"${v.type === t ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
   const form = openDialog({
     title: r ? esc(r.text) : 'New recurring',
     submit: r ? 'Save' : 'Add',
     body: `<fieldset class="type-seg"><legend class="sr-only">Type</legend>${radio('expense')}${radio('income')}</fieldset>
-      <label class="field"><span>Name</span><input name="text" value="${esc(v.text)}" placeholder="Salary, rent, phone bill…" required autocomplete="off"></label>
+      <label class="field"><span>Name</span><input name="text" value="${esc(v.text)}" placeholder="${v.type === 'income' ? 'Salary, rent from flat, side job…' : 'Rent, phone bill…'}" required autocomplete="off"></label>
       <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
         <label class="field"><span>Repeats</span><select name="cycle">${Object.entries(CYCLES).map(([k, l]) => `<option value="${k}"${v.cycle === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <div class="field-row"><label class="field"><span>Next on</span><input name="next" type="date" value="${v.next}" required></label>
         <label class="field expense-only"><span>Category</span><select name="cat">${catOptions(catById(v.cat).id)}</select></label></div>
       ${acctField(v.acct)}
+      <div class="field-row income-only"><label class="field"><span>Save from each payment</span><input name="saveAmt" type="number" step="0.01" min="0" inputmode="decimal" value="${v.saveAmt || ''}" placeholder="0"></label>
+        <label class="field"><span>Into</span><select name="saveGoal">${state.goals.length ? goalOptions(v.saveGoal) : '<option value="">Savings (new goal)</option>'}</select></label></div>
       ${r ? `<label class="check"><input type="checkbox" name="paused"${r.status === 'paused' ? ' checked' : ''}>Paused</label>` : ''}
       <p class="help" style="margin-top:0">Logged automatically on each date.</p>`,
     extra: r ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
@@ -1583,8 +1596,12 @@ function editRecurring(id) {
       if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return formErr(form, 'Pick the next date.');
       const type = fd.get('type');
+      const saveAmt = type === 'income' ? parseFloat(fd.get('saveAmt')) || 0 : 0;
+      if (saveAmt < 0 || saveAmt > amount) return formErr(form, 'The amount to save must be between 0 and the income.');
+      let saveGoal = saveAmt > 0 ? fd.get('saveGoal') || null : null;
+      if (saveAmt > 0 && !goalById(saveGoal)) { const ng = { id:uid(), name:'Savings', target:0, date:null, start:0, ts:Date.now() }; state.goals.push(ng); saveGoal = ng.id; }
       const data = { type, text, amount, cycle: fd.get('cycle'), next, day: parseYmd(next).getDate(), cat: type === 'expense' ? fd.get('cat') : null,
-        acct: fd.get('acct') || null, status: fd.get('paused') === 'on' ? 'paused' : 'active' };
+        acct: fd.get('acct') || null, status: fd.get('paused') === 'on' ? 'paused' : 'active', saveAmt, saveGoal };
       if (r) Object.assign(r, data); else state.recurring.push({ id:uid(), ts:Date.now(), ...data });
       save();
       const n = runRecurring();
@@ -1597,24 +1614,30 @@ function editRecurring(id) {
 }
 // Log every recurring item whose date has come. Ids are derived from the item and date,
 // so two synced devices logging the same day produce one entry, not two.
-function runRecurring(quiet) {
+function runRecurring() {
   const today = ymd(new Date());
-  let n = 0, changed = false;
+  let n = 0, changed = false, last = '';
+  const fresh = id => !state.entries.some(e => e.id === id) && !state.deleted['entries:' + id];
   for (const r of state.recurring) {
     if (r.status === 'paused') continue;
     for (let i = 0; i < 60 && r.next <= today; i++) {
-      const id = `r-${r.id}-${r.next}`;
-      if (!state.entries.some(e => e.id === id) && !state.deleted['entries:' + id]) {
-        const ts = parseYmd(r.next).getTime() + 9 * 36e5;
+      const id = `r-${r.id}-${r.next}`, ts = parseYmd(r.next).getTime() + 9 * 36e5;
+      if (fresh(id)) {
         state.entries.push({ id, type:r.type, text:r.text, amount:r.amount, cat:r.type === 'expense' ? r.cat : null, acct:r.acct || null, tags:[], ts, pinned:false, recId:r.id });
-        n++;
+        n++; last = `${r.text} logged`;
+      }
+      // Income with an auto-save amount: move that part straight into the savings goal.
+      const g = r.type === 'income' && r.saveAmt > 0 && goalById(r.saveGoal);
+      if (g && fresh(id + '-s')) {
+        state.entries.push({ id:id + '-s', type:'save', text:g.name, amount:r.saveAmt, goal:g.id, acct:r.acct || null, tags:[], ts:ts + 60000, pinned:false, recId:r.id });
+        last = `${r.text} logged · ${money(r.saveAmt)} to ${g.name}`;
       }
       r.next = nextDate(r);
       changed = true;
     }
   }
   if (changed) save();
-  if (n) toast(n === 1 ? `${state.entries[state.entries.length - 1].text} logged` : `${n} recurring entries logged`);
+  if (n) toast(n === 1 ? last : `${n} recurring entries logged`);
   return n;
 }
 // With sync on, wait for the first sync so this device logs against the latest data.
@@ -2037,7 +2060,7 @@ const ACTIONS = {
   'debt-add': () => editDebt(),
   'debt-edit': (el) => editDebt(el.dataset.id),
   'debt-pay': (el) => payDebt(el.dataset.id),
-  'rec-add': () => editRecurring(),
+  'rec-add': (el) => editRecurring(null, el.dataset.v),
   'rec-edit': (el) => editRecurring(el.dataset.id),
   'review-open'(el) { const [y, m] = el.dataset.v.split('-').map(Number); bm = { y, m: m - 1 }; state.settings.reviewSeen = el.dataset.v; save(); location.hash = 'budget'; },
   'review-dismiss'(el) { state.settings.reviewSeen = el.dataset.v; save(); },
