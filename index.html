@@ -318,6 +318,13 @@ dialog[open]{animation:dlg-in .2s cubic-bezier(.2,.8,.2,1)}
 .pay-list{list-style:none;margin:-4px 0 14px;padding:0;font-size:14px}
 .pay-list li{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--border);padding:2px 0 2px 2px}
 .pay-list .amt{font-weight:500}
+.stats.two{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:16px}
+.wallet-card{text-align:left;cursor:pointer;color:inherit;font:inherit;width:100%;transition:border-color .15s}
+.wallet-card:hover{border-color:var(--border-strong)}
+.cap-after{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+.type-seg.wrap{flex-wrap:wrap}
+.type-seg.wrap label{flex:1 1 30%}
+form:not([data-type="note"]) .note-only{display:none}
 a.cat-row{color:inherit;text-decoration:none}
 .row-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;min-height:44px}
 .row-main .amt{margin-left:auto}
@@ -336,7 +343,6 @@ a.cat-row{color:inherit;text-decoration:none}
   .nav a[aria-current="page"] .ic{background:var(--accent-soft);border-radius:0;width:44px;padding:3px 12px;height:26px}
   .lbl-long{display:none} .lbl-short{display:inline}
   .mobile-top{display:flex;justify-content:flex-end;align-items:center;padding:12px 12px 0 16px;gap:4px}
-  .nav-settings,.nav-timeline{display:none}
   main{padding:18px 16px calc(100px + env(safe-area-inset-bottom))}
   .toast{bottom:calc(86px + env(safe-area-inset-bottom))}
   .stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -388,14 +394,11 @@ a.cat-row{color:inherit;text-decoration:none}
 <div class="app">
   <nav class="side" aria-label="Main">
     <ul class="nav">
-      <li><a href="#today" data-view="today"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Today</span></a></li>
+      <li><a href="#today" data-view="today"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></a></li>
       <li><a href="#notes" data-view="notes"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span></a></li>
-      <li class="nav-timeline"><a href="#timeline" data-view="timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Timeline</span></a></li>
-      <li><a href="#budget" data-view="budget"><svg class="ic" aria-hidden="true"><use href="#i-pie"/></svg><span>Budget</span></a></li>
-      <li><a href="#wallet" data-view="wallet"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg><span>Wallet</span></a></li>
-      <li><a href="#savings" data-view="savings"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg><span>Savings</span></a></li>
-      <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span>Monthly</span></a></li>
-      <li class="nav-settings"><a href="#settings" data-view="settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span>Settings</span></a></li>
+      <li><a href="#subs" data-view="subs"><svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg><span>Subs</span></a></li>
+      <li><a href="#timeline" data-view="timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>History</span></a></li>
+      <li><a href="#settings" data-view="settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span>Settings</span></a></li>
     </ul>
     <div class="side-foot">
       <a class="backup-pill" href="#settings"></a>
@@ -404,8 +407,6 @@ a.cat-row{color:inherit;text-decoration:none}
   <div>
     <header class="mobile-top">
       <a class="backup-pill" href="#settings"></a>
-      <a class="top-link" href="#timeline"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Timeline</a>
-      <a class="top-link" href="#settings"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg>Settings</a>
     </header>
     <main id="main"></main>
   </div>
@@ -430,16 +431,6 @@ const SAVE_WORD = /^(save|saved|saving|savings)$/i;
 const CURRENCIES = ['USD','EUR','GBP','AED','SAR','QAR','KWD','BHD','OMR','EGP','JOD','TRY','INR','PKR','CAD','AUD','CHF','JPY'];
 const CAT_COLORS = ['#C2410C','#0F766E','#7C3AED','#B45309','#BE185D','#15803D','#2563EB','#9333EA','#64748B','#0E7490','#A16207'];
 const DEFAULT_CATS = [['food','Food'],['transport','Transport'],['housing','Housing'],['bills','Bills'],['shopping','Shopping'],['health','Health'],['fun','Fun'],['subscriptions','Subscriptions'],['other','Other']];
-const KEYWORDS = {
-  food: 'coffee cafe café lunch dinner breakfast brunch grocery groceries restaurant food snack snacks pizza burger shawarma tea bakery supermarket starbucks mcdonalds kfc talabat deliveroo uber-eats careem-food juice dessert',
-  transport: 'taxi uber careem fuel petrol gas parking bus metro train toll salik car tram flight-taxi',
-  housing: 'rent mortgage furniture maintenance repair cleaning',
-  bills: 'electricity water internet phone mobile wifi bill bills dewa etisalat du utility utilities insurance',
-  shopping: 'clothes shoes amazon noon shopping gift gifts mall shirt jacket electronics',
-  health: 'pharmacy doctor gym medicine dentist clinic hospital vitamins',
-  fun: 'movie movies cinema game games concert trip travel hotel flight tickets party',
-  subscriptions: 'netflix spotify youtube icloud subscription disney chatgpt claude prime shahid osn',
-};
 const INCOME_RE = /\b(salary|income|refund|bonus|paid me|freelance|dividend|cashback|payment received|got paid|wage|wages|received|earned)\b/i;
 const CUR_WORD = /^(aed|dhs?|dirhams?|usd|dollars?|bucks|eur|euros?|gbp|pounds?|sar|riyals?|qar|kwd|bhd|omr|egp|inr|rs|rupees?|[$€£])\.?$/i;
 const MONEY_VERB = /\b(paid|pay|spent|spend|bought|buy|received|receive|got|earned|lent|loaned|borrowed|owes?|sent|put|moved|transferred|cost|costs|save|saved|saving|savings)\b/i;
@@ -593,34 +584,21 @@ function applyMerged(m) {
   render();
   Backup.schedule();
 }
-const goalById = id => state.goals.find(g => g.id === id);
 const catById = id => state.categories.find(c => c.id === id) || state.categories.find(c => c.id === 'other');
-const subById = id => state.subs.find(s => s.id === id);
-const acctById = id => state.accounts.find(a => a.id === id);
-const defaultAcct = () => (acctById(state.settings.acct) || state.accounts[0])?.id || null;
-const acctOptions = (sel, none) => (none ? `<option value="">${none}</option>` : '') + state.accounts.map(a => `<option value="${esc(a.id)}"${a.id === sel ? ' selected' : ''}>${esc(a.name)}</option>`).join('');
-const acctField = (sel, cls = '') => state.accounts.length ? `<label class="field ${cls}"><span>Account</span><select name="acct">${acctOptions(sel, 'None')}</select></label>` : '';
-function guessAcct(tags) {
-  const norm = s => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-  for (const t of tags) { const a = state.accounts.find(a => norm(a.name) === norm(t)); if (a) return a.id; }
-  return defaultAcct();
-}
-function balances() {
-  const b = {};
-  for (const a of state.accounts) b[a.id] = a.start || 0;
+
+// Two wallets. Money you add lands in Main, spending leaves Main, and saving moves money Main → Savings.
+// Starting amounts from older versions (accounts, savings goals) are counted so balances stay right.
+function wallets() {
+  let main = state.settings.mainStart || 0, savings = state.settings.savingsStart || 0;
+  for (const a of state.accounts) main += a.start || 0;
+  for (const g of state.goals) savings += g.start || 0;
   for (const e of state.entries) {
-    if (e.type === 'transfer') { if (e.acct in b) b[e.acct] -= e.amount; if (e.to in b) b[e.to] += e.amount; }
-    else if (e.acct in b && e.amount) b[e.acct] += e.type === 'income' ? e.amount : -e.amount;
+    if (e.type === 'income') main += e.amount;
+    else if (e.type === 'expense') main -= e.amount;
+    else if (e.type === 'save') { main -= e.amount; savings += e.amount; }
   }
-  // Lending cash takes it out of the account; being paid back puts it in (and the reverse when borrowing).
-  for (const d of state.debts) if (d.acct in b) {
-    const paid = (d.pays || []).reduce((t, p) => t + p.amount, 0);
-    b[d.acct] += d.dir === 'in' ? paid - d.amount : d.amount - paid;
-  }
-  return b;
+  return { main, savings };
 }
-const savingsTotal = () => state.goals.reduce((t, g) => t + (g.start || 0), 0) + state.entries.reduce((t, e) => t + (e.type === 'save' ? e.amount : 0), 0);
-const debtLeft = d => d.amount - (d.pays || []).reduce((t, p) => t + p.amount, 0);
 
 /* ---------- quick capture parsing ---------- */
 const TAG_RE = /#([\p{L}\p{N}_-]+)/gu;
@@ -630,16 +608,8 @@ function amountOf(w) {
   const value = parseFloat(m[3].replace(/,/g, '') + (m[4] ? '.' + m[4] : '')) * (m[5] ? 1000 : 1);
   return { sign: m[1] || m[2] || null, value };
 }
-function guessCat(lower, tags) {
-  for (const t of tags) { const c = state.categories.find(c => c.name.toLowerCase() === t || c.id === t); if (c) return c.id; }
-  const words = lower.split(/[^\p{L}\p{N}-]+/u);
-  for (const [id, list] of Object.entries(KEYWORDS)) {
-    if (!state.categories.some(c => c.id === id)) continue;
-    const set = list.split(' ');
-    if (words.some(w => set.includes(w))) return id;
-  }
-  return 'other';
-}
+const OUT_OF_SAVINGS = /\b(from|withdraw|withdrew|take|took|out|back)\b/i;
+const ADD_WORD = /^(add|added|deposit|deposited|topup|top-up)$/i;
 function analyze(raw) {
   const text = raw.trim();
   const tags = [...new Set([...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase()))];
@@ -663,61 +633,39 @@ function analyze(raw) {
   const rest = words.filter((w, i) => (!hit || i !== hit.i) && !w.startsWith('#')).join(' ');
   const lower = rest.toLowerCase();
   const isMoney = !!hit && hit.value > 0 && words.length <= 12;
-  const debt = guessDebt(rest);
-  const guessType = debt && !hit?.sign ? 'debt'
-    : saveIntent && !hit?.sign ? 'save'
-    : hit?.sign === '+' ? 'income' : hit?.sign === '-' ? 'expense' : INCOME_RE.test(lower) ? 'income' : 'expense';
-  return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType, debt };
-}
-// "lent Ahmed", "Ahmed owes me", "borrowed from Ali", "I owe Ali" → a debt.
-function guessDebt(rest) {
-  const r = rest.trim();
-  let m;
-  if ((m = r.match(/^(?:i\s+)?(?:lent|loaned)\s+(?:to\s+)?(.+)$/i))) return { dir:'in', who:m[1] };
-  if ((m = r.match(/^(.+?)\s+owes\s+me\b/i))) return { dir:'in', who:m[1] };
-  if ((m = r.match(/^(?:i\s+)?borrowed\s+(?:from\s+)?(.+)$/i))) return { dir:'out', who:m[1] };
-  if ((m = r.match(/^(?:i\s+)?owe\s+(.+)$/i))) return { dir:'out', who:m[1] };
-  return null;
-}
-function guessGoal(lower, tags) {
-  const norm = s => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-  for (const t of tags) { const g = state.goals.find(g => norm(g.name).startsWith(norm(t))); if (g) return g.id; }
-  const words = lower.split(/\s+/).filter(w => w.length > 2 && !SAVE_WORD.test(w) && !/^(for|the|into|towards?)$/.test(w));
-  const g = state.goals.find(g => words.some(w => g.name.toLowerCase().includes(w)));
-  return (g || state.goals[0])?.id || null;
+  const guessType = saveIntent ? (OUT_OF_SAVINGS.test(lower) || hit?.sign === '-' ? 'withdraw' : 'save')
+    : hit?.sign === '+' || INCOME_RE.test(lower) || ADD_WORD.test(plain[0]?.[0] || '') ? 'income' : 'expense';
+  return { text, tags, amount: hit ? hit.value : null, rest, lower, isMoney, guessType };
 }
 
 /* ---------- capture state ---------- */
-let draft = '', capType = null, capCat = null, capGoal = null, capAcct = null, capDir = null;
+let draft = '', capType = null;
+const TYPE_META = { expense:['out','Spent'], income:['in','Add to Main'], save:['save','To Savings'], withdraw:['save','From Savings'], note:['note','Note'], transfer:['swap','Transfer'] };
+const CAP_TYPES = ['expense', 'income', 'save', 'withdraw', 'note'];
 function preview() {
   const t = draft.trim(); if (!t) return null;
   const a = analyze(t);
   const type = capType || (a.isMoney ? a.guessType : 'note');
   if (type === 'note') return { type, text: t, tags: a.tags };
-  const acct = capAcct || guessAcct(a.tags);
-  if (type === 'debt') { const who = (a.debt?.who || a.rest || 'Someone').trim(); return { type, text: who[0].toUpperCase() + who.slice(1), amount: a.amount, dir: capDir || a.debt?.dir || 'in', acct, tags: a.tags }; }
-  if (type === 'save') { const goal = capGoal || guessGoal(a.lower, a.tags); return { type, text: goalById(goal)?.name || 'Savings', amount: a.amount, goal, acct, tags: a.tags }; }
-  const label = a.amount != null ? (a.rest || (type === 'income' ? 'Income' : 'Expense')) : t.replace(TAG_RE, '').trim();
-  return { type, text: label, amount: a.amount, cat: type === 'expense' ? (capCat || guessCat(a.lower, a.tags)) : null, acct, tags: a.tags };
+  const words = a.rest.split(/\s+/).filter(w => w && !SAVE_WORD.test(w) && !OUT_OF_SAVINGS.test(w) && !/^(to|in|into|my|the|put|move|moved)$/i.test(w)).join(' ');
+  const text = a.amount == null ? t.replace(TAG_RE, '').trim()
+    : type === 'save' ? (words ? `Savings · ${words}` : 'To Savings')
+    : type === 'withdraw' ? (words ? `From Savings · ${words}` : 'From Savings')
+    : a.rest && !ADD_WORD.test(a.rest) ? a.rest : type === 'income' ? 'Added money' : 'Spent';
+  return { type, text, amount: a.amount, tags: a.tags };
 }
-const TYPE_META = { note:['note','Note'], expense:['out','Expense'], income:['in','Income'], save:['save','Saving'], transfer:['swap','Transfer'], debt:['wallet','Debt'] };
-const goalOptions = sel => state.goals.map(g => `<option value="${esc(g.id)}"${g.id === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
 const signed = (n, plus = true) => (n < 0 ? '−' : plus ? '+' : '') + money(Math.abs(n));
 function previewHTML(p) {
   if (!p) return '';
-  const types = ['note', 'expense', 'income', 'save', 'debt'];
-  let h = `<label class="sr-only" for="cap-type">Type</label><select id="cap-type" class="mini-select" data-change="cap-type">${types.map(t => `<option value="${t}"${p.type === t ? ' selected' : ''}>${TYPE_META[t][1]}</option>`).join('')}</select>`;
-  if (p.type === 'expense') h += `<label class="sr-only" for="cap-cat">Category</label><select id="cap-cat" class="mini-select" data-change="cap-cat">${catOptions(p.cat)}</select>`;
-  if (p.type === 'save') h += `<label class="sr-only" for="cap-goal">Goal</label><select id="cap-goal" class="mini-select" data-change="cap-goal">${state.goals.length ? goalOptions(p.goal) : '<option value="">Savings (new goal)</option>'}</select>`;
-  if (p.type === 'debt') h += `<span class="cap-amt" style="font-weight:500">${esc(p.text)}</span><label class="sr-only" for="cap-dir">Who owes</label><select id="cap-dir" class="mini-select" data-change="cap-dir"><option value="in"${p.dir === 'in' ? ' selected' : ''}>owes you</option><option value="out"${p.dir === 'out' ? ' selected' : ''}>you owe them</option></select>`;
-  if (p.type !== 'note' && state.accounts.length > 1) h += `<label class="sr-only" for="cap-acct">Account</label><select id="cap-acct" class="mini-select" data-change="cap-acct">${acctOptions(p.acct)}</select>`;
-  if (p.type !== 'note') h += p.amount > 0
-    ? `<span class="cap-amt">${p.type === 'expense' ? '−' : p.type === 'debt' ? '' : '+'}${money(p.amount)}</span>`
-    : `<span class="cap-amt missing">Add an amount, like “lunch 12”</span>`;
+  let h = `<label class="sr-only" for="cap-type">Type</label><select id="cap-type" class="mini-select" data-change="cap-type">${CAP_TYPES.map(t => `<option value="${t}"${p.type === t ? ' selected' : ''}>${TYPE_META[t][1]}</option>`).join('')}</select>`;
+  if (p.type === 'note') return h;
+  if (!(p.amount > 0)) return h + `<span class="cap-amt missing">Add an amount, like “lunch 45”</span>`;
+  // Show what the wallets will hold after saving, so the effect is obvious.
+  const w = wallets(), a = p.amount;
+  const after = { expense:{ main:w.main - a }, income:{ main:w.main + a }, save:{ main:w.main - a, savings:w.savings + a }, withdraw:{ main:w.main + a, savings:w.savings - a } }[p.type];
+  h += `<span class="cap-amt">${p.type === 'expense' ? '−' : p.type === 'income' ? '+' : ''}${money(a)}</span>`;
+  h += `<span class="cap-after${after.main < 0 || after.savings < 0 ? ' neg-txt' : ''}">Main ${signed(after.main, false)}${after.savings != null ? ` · Savings ${signed(after.savings, false)}` : ''}</span>`;
   return h;
-}
-function catOptions(sel) {
-  return state.categories.map(c => `<option value="${esc(c.id)}"${c.id === sel ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
 }
 function updatePreview() {
   const el = $('#cap-preview'); if (el) el.innerHTML = previewHTML(preview());
@@ -725,130 +673,74 @@ function updatePreview() {
 }
 function capSave() {
   const p = preview(); if (!p) return;
-  if (p.type !== 'note' && !(p.amount > 0)) { toast('Add an amount first, like “lunch 12”.'); return; }
-  if (p.type === 'debt') {
-    const d = { id:uid(), who:p.text, dir:p.dir, amount:p.amount, acct:p.acct || null, due:null, note:'', ts:Date.now(), pays:[] };
-    state.debts.push(d);
-    draft = ''; capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null;
-    save();
-    $('#cap')?.focus();
-    toast(d.dir === 'in' ? `${d.who} owes you ${money(d.amount)}` : `You owe ${d.who} ${money(d.amount)}`, { action:'Undo', onAction() { state.debts = state.debts.filter(x => x.id !== d.id); save(); } });
-    return;
-  }
-  if (p.type === 'save' && !goalById(p.goal)) { const g = { id:uid(), name:'Savings', target:0, date:null, start:0, ts:Date.now() }; state.goals.push(g); p.goal = g.id; p.text = g.name; }
-  const e = { id:uid(), type:p.type, text:p.text, amount:p.type === 'note' ? null : p.amount, cat:p.cat || null, tags:p.tags, ts:Date.now(), pinned:false };
-  if (p.type === 'save') e.goal = p.goal;
-  if (p.type !== 'note' && p.acct) e.acct = p.acct;
+  if (p.type !== 'note' && !(p.amount > 0)) { toast('Add an amount first, like “lunch 45”.'); return; }
+  const type = p.type === 'withdraw' ? 'save' : p.type;
+  const amount = p.type === 'note' ? null : p.type === 'withdraw' ? -p.amount : p.amount;
+  const e = { id:uid(), type, text:p.text, amount, cat:null, tags:p.tags, ts:Date.now(), pinned:false };
   state.entries.push(e);
-  draft = ''; capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null;
+  draft = ''; capType = null;
   save();
-  const cap = $('#cap'); if (cap) cap.focus();
-  toast(e.type === 'note' ? 'Note saved' : e.type === 'save' ? `Saved ${money(e.amount)} · ${e.text}` : `${e.type === 'income' ? 'Income' : 'Expense'} logged · ${money(e.amount)}`, {
-    action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); save(); },
-  });
-}
-
-/* ---------- numbers ---------- */
-function monthStats(y, m) {
-  const start = new Date(y, m, 1).getTime(), end = new Date(y, m + 1, 1).getTime();
-  const days = new Date(y, m + 1, 0).getDate();
-  const byDay = new Array(days).fill(0), byCat = {};
-  let spent = 0, income = 0, saved = 0, biggest = null;
-  for (const e of state.entries) {
-    if (e.ts < start || e.ts >= end) continue;
-    if (e.type === 'expense') {
-      const cid = catById(e.cat).id;
-      spent += e.amount; byCat[cid] = (byCat[cid] || 0) + e.amount; byDay[new Date(e.ts).getDate() - 1] += e.amount;
-      if (!biggest || e.amount > biggest.amount) biggest = e;
-    } else if (e.type === 'income') income += e.amount;
-    else if (e.type === 'save') saved += e.amount;
-  }
-  let budget = 0, budgetedSpent = 0;
-  for (const c of state.categories) if (c.budget > 0) { budget += c.budget; budgetedSpent += byCat[c.id] || 0; }
-  return { spent, income, saved, biggest, byDay, byCat, budget, left: budget - budgetedSpent, days };
-}
-const activeSubs = () => state.subs.filter(s => s.status === 'active');
-const subsMonthly = () => activeSubs().reduce((t, s) => t + s.amount * (PER_MONTH[s.cycle] || 1), 0);
-const billsMonthly = () => subsMonthly() + state.recurring.filter(r => r.type === 'expense' && r.status !== 'paused').reduce((t, r) => t + r.amount * (PER_MONTH[r.cycle] || 1), 0);
-// Bills, subscriptions and income due in the next few days, soonest first.
-const upcoming = days => [...activeSubs().filter(s => daysUntil(s.next) <= days).map(s => ({ next:s.next, html:subRow(s) })),
-  ...state.recurring.filter(r => r.status !== 'paused' && daysUntil(r.next) <= days).map(r => ({ next:r.next, html:recRow(r) }))].sort((a, b) => a.next.localeCompare(b.next));
-function nextDate(s) {
-  const d = parseYmd(s.next);
-  if (s.cycle === 'weekly') { d.setDate(d.getDate() + 7); return ymd(d); }
-  const add = { monthly:1, quarterly:3, yearly:12 }[s.cycle] || 1;
-  const anchor = s.day || d.getDate();
-  const y = d.getFullYear(), m = d.getMonth() + add;
-  return ymd(new Date(y, m, Math.min(anchor, new Date(y, m + 1, 0).getDate())));
+  $('#cap')?.focus();
+  const w = wallets();
+  const msg = type === 'note' ? 'Note saved'
+    : type === 'save' ? `${amount < 0 ? 'Moved to Main' : 'Moved to Savings'} · Main ${money(w.main)} · Savings ${money(w.savings)}`
+    : `${type === 'income' ? 'Added' : 'Spent'} ${money(p.amount)} · Main ${money(w.main)}`;
+  toast(msg, { action:'Undo', onAction() { state.entries = state.entries.filter(x => x.id !== e.id); save(); } });
 }
 
 /* ---------- shared fragments ---------- */
 function entryItem(e, showDay) {
-  const [ic] = TYPE_META[e.type];
+  const back = e.type === 'save' && e.amount < 0;
+  const [ic] = TYPE_META[e.type] || TYPE_META.note;
   const meta = [];
   if (e.pinned) meta.push(`${icon('pin')}<span>Pinned</span>`);
   meta.push(`<span>${showDay ? dayLabel(e.ts) + ', ' : ''}${timeOf(e.ts)}</span>`);
-  if (e.type === 'expense') { const c = catById(e.cat); meta.push(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span><span>${esc(c.name)}</span>`); }
-  if (e.type === 'save') meta.push('<span>Savings</span>');
-  if (e.type === 'transfer') meta.push('<span>Transfer</span>');
-  else if (e.acct && acctById(e.acct) && state.accounts.length > 1) meta.push(`<span>${esc(acctById(e.acct).name)}</span>`);
-  if (e.recId) meta.push(`${icon('repeat')}<span class="sr-only">Recurring</span>`);
-  if (e.type !== 'note') for (const t of e.tags || []) meta.push(`<span>#${esc(t)}</span>`);
+  const where = { income:'Into Main', expense:'From Main', save: back ? 'Savings → Main' : 'Main → Savings' }[e.type];
+  if (where) meta.push(`<span>${where}</span>`);
   const amt = e.type === 'note' ? ''
-    : e.type === 'save' ? `<span class="amt sv">${signed(e.amount)}</span>`
-    : e.type === 'transfer' ? `<span class="amt sv">${money(e.amount)}</span>`
+    : e.type === 'save' || e.type === 'transfer' ? `<span class="amt sv">${money(Math.abs(e.amount))}</span>`
     : `<span class="amt ${e.type === 'income' ? 'in' : 'out'}">${e.type === 'income' ? '+' : '−'}${money(e.amount)}</span>`;
-  const text = e.type === 'transfer' ? `${acctById(e.acct)?.name || '?'} → ${acctById(e.to)?.name || '?'}`
-    : e.type === 'note' ? e.text.replace(/^(\s*)(?:[-*]\s+)?\[ \]\s?/gm, '$1☐ ').replace(/^(\s*)(?:[-*]\s+)?\[[xX]\]\s?/gm, '$1☑ ')
-    : e.text;
+  const text = e.type === 'note' ? e.text.replace(/^(\s*)(?:[-*]\s+)?\[ \]\s?/gm, '$1☐ ').replace(/^(\s*)(?:[-*]\s+)?\[[xX]\]\s?/gm, '$1☑ ') : e.text;
   return `<li><button class="entry" data-act="edit" data-id="${e.id}">
     <span class="entry-ic t-${e.type}">${icon(ic)}</span>
     <span class="entry-main"><span class="entry-text">${esc(text)}</span><span class="entry-meta">${meta.join('<span aria-hidden="true">·</span>')}</span></span>
     ${amt}</button></li>`;
 }
-function subRow(s) {
-  const off = s.status !== 'active';
-  return `<li class="sub-row">
-    <button class="row-main" data-act="sub-edit" data-id="${esc(s.id)}"><span class="sub-main"><span class="sub-name">${esc(s.name)}</span>
-      <span class="sub-meta">${off ? (s.status === 'paused' ? 'Paused' : 'Cancelled') : 'Next ' + shortDate(s.next)} · ${CYCLES[s.cycle] || s.cycle}</span></span>
-    <span class="amt out">−${money(s.amount)}</span></button></li>`;
-}
-function stat(label, value, sub, neg) {
-  return `<div class="card stat"><div class="stat-label">${label}</div><div class="stat-value${neg ? ' neg' : ''}">${value}</div>${sub ? `<div class="stat-sub">${sub}</div>` : ''}</div>`;
-}
 
 /* ---------- views ---------- */
 function vToday() {
-  const now = new Date();
+  const now = new Date(), w = wallets();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const spent = state.entries.reduce((t, e) => t + (e.type === 'expense' && e.ts >= monthStart ? e.amount : 0), 0);
   const todays = state.entries.filter(e => sameDay(e.ts, now)).sort(byTsDesc);
   const pinned = state.entries.filter(e => e.pinned && !sameDay(e.ts, now)).sort(byTsDesc);
-  const st = monthStats(now.getFullYear(), now.getMonth());
-  const up = upcoming(7);
-  const moneyCount = state.entries.filter(e => e.type !== 'note').length;
+  const soon = activeSubs().filter(x => daysUntil(x.next) <= 7).sort((a, b) => a.next.localeCompare(b.next));
+  const card = (key, label, value, sub) => `<button class="card stat wallet-card" data-act="wallet" data-v="${key}" aria-label="${label}: ${money(value)}. Correct balance">
+    <div class="stat-label">${label}</div><div class="stat-value${value < 0 ? ' neg' : ''}">${signed(value, false)}</div>${sub ? `<div class="stat-sub">${sub}</div>` : ''}</button>`;
   return `
   <header class="page-head"><h1 tabindex="-1">${now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long' })}</h1></header>
   <div id="backup-banner">${bannerHTML()}</div>
-  ${reviewBanner()}
+  <section class="stats two" aria-label="Wallets">
+    ${card('main', 'Main', w.main, `Spent this month ${money(spent)}`)}
+    ${card('savings', 'Savings', w.savings)}
+  </section>
   <section class="card capture" aria-label="Quick capture">
-    <label for="cap" class="sr-only">Write a note, or log money like “coffee 4.50”</label>
-    <textarea id="cap" rows="2" placeholder="lunch 45 · salary +15000 · or a note">${esc(draft)}</textarea>
+    <label for="cap" class="sr-only">Log money like “+3000”, “lunch 45”, “2000 savings”, or write a note</label>
+    <textarea id="cap" rows="2" placeholder="+3000 · lunch 45 · 2000 savings · or a note">${esc(draft)}</textarea>
     <div class="cap-bar">
       <div class="cap-preview" id="cap-preview">${previewHTML(preview())}</div>
       <button class="btn primary" data-act="cap-save"${draft.trim() ? '' : ' disabled'}>Save</button>
     </div>
   </section>
-  ${moneyCount < 3 ? `<p class="hint" style="margin:-16px 2px 20px">Amounts in ${esc(state.settings.currency)} · <a href="#settings">Change</a></p>` : ''}
-  <section class="stats" aria-label="This month">
-    ${stat('Spent', money(st.spent))}
-    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)} budget`, st.left < 0) : stat('Income', money(st.income))}
-    ${stat('Bills / mo', money(billsMonthly()))}
-  </section>
-  ${up.length ? `<section><h2>Coming up</h2><ul class="list card">${up.map(x => x.html).join('')}</ul></section>` : ''}
+  ${soon.length ? `<section><h2>Renewing soon</h2><ul class="list card">${soon.map(subRow).join('')}</ul></section>` : ''}
   ${pinned.length ? `<section><h2>Pinned</h2><ul class="list card">${pinned.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}
   <section><h2>Today</h2>
     ${todays.length ? `<ul class="list card">${todays.map(e => entryItem(e)).join('')}</ul>`
       : `<div class="card empty">Nothing yet today</div>`}
   </section>`;
+}
+function stat(label, value, sub, neg) {
+  return `<div class="card stat"><div class="stat-label">${label}</div><div class="stat-value${neg ? ' neg' : ''}">${value}</div>${sub ? `<div class="stat-sub">${sub}</div>` : ''}</div>`;
 }
 
 let nt = { q:'', tag:null }, noteDraft = '';
@@ -874,7 +766,7 @@ function vNotes() {
   ${topTags.length ? `<div class="tags" role="group" aria-label="Filter by tag">${topTags.map(t => `<button class="chip" data-act="nt-tag" data-v="${esc(t)}" aria-pressed="${nt.tag === t}">#${esc(t)}</button>`).join('')}</div>` : ''}
   ${pinned.length ? `<section><h2>Pinned</h2>${grid(pinned)}</section>` : ''}
   ${rest.length ? `<section>${pinned.length ? '<h2>Others</h2>' : ''}${grid(rest)}</section>` : ''}
-  ${list.length ? '' : `<div class="card empty">${all.length ? 'No matches' : 'No notes yet. Notes you write on Today show up here too.'}</div>`}`;
+  ${list.length ? '' : `<div class="card empty">${all.length ? 'No matches' : 'No notes yet. Notes you write on Home show up here too.'}</div>`}`;
 }
 // Lines like "- [ ] milk" or "[x] done" become tickable checkboxes.
 function noteBody(e) {
@@ -953,7 +845,7 @@ function vTimeline() {
   for (const e of shown) { const k = ymd(new Date(e.ts)); const g = groups[groups.length - 1]; if (g && g.k === k) g.items.push(e); else groups.push({ k, items:[e] }); }
   const seg = (v, l) => `<button data-act="tl-filter" data-v="${v}" aria-pressed="${tl.filter === v}">${l}</button>`;
   return `
-  <header class="page-head"><h1 tabindex="-1">Timeline</h1></header>
+  <header class="page-head"><h1 tabindex="-1">History</h1></header>
   <div class="toolbar">
     <div class="search">${icon('search')}<label for="tl-q" class="sr-only">Search notes and spending</label><input id="tl-q" type="search" placeholder="Search" value="${esc(tl.q)}" autocomplete="off"></div>
     <div class="seg" role="group" aria-label="Show">${seg('all', 'All')}${seg('notes', 'Notes')}${seg('money', 'Money')}</div>
@@ -962,242 +854,6 @@ function vTimeline() {
   ${groups.length ? groups.map(g => `<section class="day-group"><h2>${dayLabel(g.items[0].ts)}</h2><ul class="list card">${g.items.map(e => entryItem(e)).join('')}</ul></section>`).join('')
     : `<div class="card empty">${state.entries.length ? 'No matches' : 'Nothing here yet'}</div>`}
   ${total > shown.length ? `<div style="text-align:center"><button class="btn secondary" data-act="tl-more">Show more (${total - shown.length} left)</button></div>` : ''}`;
-}
-
-let bm = { y: new Date().getFullYear(), m: new Date().getMonth() };
-function vBudget() {
-  const { y, m } = bm;
-  const st = monthStats(y, m);
-  const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
-  const net = st.income - st.spent;
-  const cats = state.categories.map(c => ({ c, spent: st.byCat[c.id] || 0 }))
-    .sort((a, b) => (b.c.budget > 0) - (a.c.budget > 0) || b.spent - a.spent);
-  return `
-  <header class="page-head"><h1 tabindex="-1">${monthName(y, m)}</h1>
-    <div class="month-nav"><button class="icon-btn" data-act="month-prev" aria-label="Previous month">${icon('chev-l')}</button>
-      <button class="label" data-act="month-now" ${isNow ? 'disabled' : ''} aria-label="${isNow ? 'This month' : 'Back to this month'}">${isNow ? 'This month' : 'Back to today'}</button>
-      <button class="icon-btn" data-act="month-next" aria-label="Next month">${icon('chev-r')}</button></div>
-  </header>
-  <section class="stats four" aria-label="Summary">
-    ${stat('Spent', money(st.spent))}
-    ${stat('Income', money(st.income))}
-    ${st.income ? stat('Net', (net < 0 ? '−' : '+') + money(Math.abs(net)), 'income − spent', net < 0) : stat('Net', '—', 'no income yet')}
-    ${st.budget ? stat('Left', money(st.left), `of ${money(st.budget)} budget`, st.left < 0) : stat('Budget', '—', 'no limits set')}
-  </section>
-  ${reviewHTML(st, y, m)}
-  <section><h2>Daily</h2><div class="card chart">${dayChart(st, y, m)}</div></section>
-  <section><div class="section-head"><h2>Categories</h2><button class="link-btn" data-act="cat-add">+ Add</button></div>
-    ${st.budget ? '' : '<p class="help" style="margin:0 0 10px">Tap a category to give it a monthly limit.</p>'}
-    <ul class="list card">${cats.map(({ c, spent }) => catRow(c, spent)).join('')}</ul>
-  </section>`;
-}
-// Month review: what you kept, how spending compares with last month, and where it went.
-function reviewHTML(st, y, m) {
-  if (!st.spent && !st.income && !st.saved) return '';
-  const py = m ? y : y - 1, pm = m ? m - 1 : 11, prev = monthStats(py, pm);
-  const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
-  // For the running month compare against the same days of last month, not the whole month.
-  const upTo = isNow ? now.getDate() : st.days;
-  // Count days only from when you started using Daybook, so the first week isn't spread over a month.
-  const first = Math.min(...state.entries.map(e => e.ts));
-  const from = Math.max(new Date(y, m, 1).getTime(), startOfDay(new Date(first)).getTime());
-  const tracked = Math.max(1, Math.round((new Date(y, m, upTo + 1).getTime() - from) / 864e5));
-  // Wait for a week and a handful of entries before judging the running month.
-  if (isNow && (tracked < 7 || state.entries.filter(e => e.type === 'expense' && e.ts >= from).length < 5)) return '';
-  const prevSpent = isNow ? prev.byDay.slice(0, upTo).reduce((t, v) => t + v, 0) : prev.spent;
-  const prevName = new Date(py, pm, 1).toLocaleDateString(undefined, { month:'long' });
-  const chg = (cur, old) => {
-    if (!(old > 0)) return '';
-    const d = Math.round((cur - old) / old * 100);
-    return d === 0 ? '<span class="chg">same</span>' : `<span class="chg ${d > 0 ? 'up' : 'down'}">${d > 0 ? '↑' : '↓'}${Math.abs(d)}%</span>`;
-  };
-  const row = (label, value) => `<div class="rev-row"><span>${label}</span><span class="v">${value}</span></div>`;
-  const rows = [];
-  if (st.income > 0) {
-    const kept = st.income - st.spent;
-    rows.push(row('Kept', `${signed(kept)}<span class="chg">${Math.round(kept / st.income * 100)}% of income</span>`));
-  }
-  if (st.saved) rows.push(row('Into savings', signed(st.saved)));
-  if (prevSpent > 0) rows.push(row(`Spending vs ${isNow ? 'same days of ' : ''}${prevName}`, `${money(st.spent)}${chg(st.spent, prevSpent)}`));
-  if (st.spent > 0) rows.push(row('Per day', money(st.spent / tracked)));
-  if (st.biggest) rows.push(row(`Biggest · ${esc(st.biggest.text)}`, money(st.biggest.amount)));
-  const top = Object.entries(st.byCat).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  for (const [cid, v] of top) {
-    const c = catById(cid);
-    const old = isNow ? null : prev.byCat[cid];
-    rows.push(row(`<span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span>${esc(c.name)}`, `${money(v)}<span class="chg">${Math.round(v / st.spent * 100)}% of spending</span>${old ? chg(v, old) : ''}`));
-  }
-  return `<section><h2>Review</h2><div class="card rev">${rows.join('')}</div></section>`;
-}
-function reviewBanner() {
-  const now = new Date();
-  if (now.getDate() > 7) return '';
-  const p = new Date(now.getFullYear(), now.getMonth() - 1, 1), key = `${p.getFullYear()}-${pad(p.getMonth() + 1)}`;
-  if (state.settings.reviewSeen === key) return '';
-  const st = monthStats(p.getFullYear(), p.getMonth());
-  if (!st.spent && !st.income) return '';
-  return `<div class="banner info">${icon('pie')}<p>${p.toLocaleDateString(undefined, { month:'long' })} in review</p>
-    <button class="btn small primary" data-act="review-open" data-v="${key}">Open</button>
-    <button class="icon-btn" data-act="review-dismiss" data-v="${key}" aria-label="Dismiss">${icon('x')}</button></div>`;
-}
-function catRow(c, spent) {
-  let nums, status = '', meter = '';
-  if (c.budget > 0) {
-    const pct = spent / c.budget * 100, left = c.budget - spent;
-    const cls = pct > 100 ? 'over' : pct >= 80 ? 'warn' : '';
-    nums = `<strong>${money(spent)}</strong> of ${money(c.budget)}`;
-    meter = `<div class="meter ${cls}" role="progressbar" aria-label="${esc(c.name)} budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(pct, 100))}"><span style="width:${Math.min(pct, 100)}%"></span></div>`;
-    status = `<div class="cat-status ${cls}">${cls ? icon('alert') : ''}${pct > 100 ? `Over by ${money(-left)}` : `${money(left)} left`}</div>`;
-  } else {
-    nums = `<strong>${money(spent)}</strong>`;
-  }
-  return `<li><button class="cat-row" data-act="cat-edit" data-id="${esc(c.id)}">
-    <div class="cat-top"><span class="cat-name"><span class="dot" style="background:${esc(c.color)}" aria-hidden="true"></span>${esc(c.name)}</span><span class="cat-nums">${nums}</span></div>
-    ${meter}${status}</button></li>`;
-}
-function dayChart(st, y, m) {
-  const max = Math.max(...st.byDay);
-  if (!max) return `<p class="muted" style="margin:6px 0">No spending yet</p>`;
-  const n = st.days, W = n * 12, H = 100;
-  const now = new Date(), isNow = y === now.getFullYear() && m === now.getMonth();
-  const peak = st.byDay.indexOf(max);
-  const bars = st.byDay.map((v, i) => {
-    if (!v) return '';
-    const h = Math.max(3, v / max * (H - 8));
-    const label = new Date(y, m, i + 1).toLocaleDateString(undefined, { day:'numeric', month:'short' });
-    return `<rect class="b${isNow && i === now.getDate() - 1 ? ' today' : ''}" x="${i * 12 + 2}" y="${H - h}" width="8" height="${h}"><title>${label}: ${money(v)}</title></rect>`;
-  }).join('');
-  const peakLabel = new Date(y, m, peak + 1).toLocaleDateString(undefined, { day:'numeric', month:'short' });
-  return `<p class="chart-sum">Peak <strong style="color:var(--text)">${peakLabel} · ${money(max)}</strong></p>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily spending in ${monthName(y, m)}. Biggest day ${peakLabel} at ${money(max)}.">
-      ${bars}<line class="base" x1="0" y1="${H - 0.5}" x2="${W}" y2="${H - 0.5}" vector-effect="non-scaling-stroke"/></svg>
-    <div class="chart-axis" aria-hidden="true"><span>1</span><span>8</span><span>15</span><span>22</span><span>${n}</span></div>`;
-}
-
-function vSubs() {
-  const on = state.recurring.filter(r => r.status !== 'paused');
-  const perMo = (r, amt = r.amount) => amt * (PER_MONTH[r.cycle] || 1);
-  const income = on.filter(r => r.type === 'income').reduce((t, r) => t + perMo(r), 0);
-  const toSave = on.filter(r => r.type === 'income' && r.saveAmt > 0).reduce((t, r) => t + perMo(r, r.saveAmt), 0);
-  const bills = billsMonthly();
-  const items = [...state.recurring.filter(r => r.type === 'expense' && r.status !== 'paused').map(r => ({ next:r.next, html:recRow(r) })),
-    ...activeSubs().map(s => ({ next:s.next, html:subRow(s) }))].sort((a, b) => a.next.localeCompare(b.next));
-  const off = [...state.recurring.filter(r => r.type === 'expense' && r.status === 'paused').map(recRow), ...state.subs.filter(s => s.status !== 'active').map(subRow)];
-  return `
-  <header class="page-head"><h1 tabindex="-1">Monthly</h1></header>
-  <section class="stats" aria-label="Every month">
-    ${stat('Income / mo', money(income))}
-    ${stat('Bills / mo', money(bills))}
-    ${income ? stat('Left / mo', signed(income - bills - toSave, false), toSave ? `after ${money(toSave)} to savings` : 'after bills', income - bills - toSave < 0) : stat('Left / mo', '—', 'add your income')}
-  </section>
-  <section><div class="section-head"><h2>Income</h2><button class="link-btn" data-act="rec-add" data-v="income">+ Add</button></div>
-    ${recList('income', 'Add your salary and any other income. It’s added for you on each payday.')}
-  </section>
-  <section><div class="section-head"><h2>Bills & subscriptions</h2><button class="link-btn" data-act="rec-add" data-v="expense">+ Add</button></div>
-    ${items.length ? `<ul class="list card">${items.map(x => x.html).join('')}</ul>` : '<div class="card empty">Rent, phone, Netflix… Each one is logged for you on its date.</div>'}
-  </section>
-  ${off.length ? `<details class="more"><summary>Paused & cancelled (${off.length})</summary><ul class="list card" style="margin-top:8px">${off.join('')}</ul></details>` : ''}`;
-}
-function recList(type, empty) {
-  const list = state.recurring.filter(r => r.type === type).sort((a, b) => (a.status === 'paused') - (b.status === 'paused') || a.next.localeCompare(b.next));
-  return list.length ? `<ul class="list card">${list.map(recRow).join('')}</ul>` : `<div class="card empty">${empty}</div>`;
-}
-function recRow(r) {
-  const off = r.status === 'paused';
-  const toSave = r.type === 'income' && r.saveAmt > 0 ? ` · ${money(r.saveAmt)} to ${esc(goalById(r.saveGoal)?.name || 'savings')}` : '';
-  return `<li><button class="sub-row entry" data-act="rec-edit" data-id="${esc(r.id)}" style="padding-right:16px">
-    <span class="sub-main"><span class="sub-name">${esc(r.text)}</span>
-      <span class="sub-meta">${off ? 'Paused' : 'Next ' + shortDate(r.next)} · ${CYCLES[r.cycle] || r.cycle}${toSave}</span></span>
-    <span class="amt ${r.type === 'income' ? 'in' : 'out'}">${r.type === 'income' ? '+' : '−'}${money(r.amount)}</span></button></li>`;
-}
-
-function vWallet() {
-  const bal = balances();
-  const saved = savingsTotal();
-  const total = state.accounts.reduce((t, a) => t + bal[a.id], 0) + saved;
-  const open = state.debts.filter(d => debtLeft(d) > 0.004), settled = state.debts.filter(d => debtLeft(d) <= 0.004);
-  const sum = dir => open.filter(d => d.dir === dir).reduce((t, d) => t + debtLeft(d), 0);
-  const def = defaultAcct();
-  const acctRow = a => `<li><button class="cat-row" data-act="acct-edit" data-id="${esc(a.id)}">
-    <div class="cat-top"><span class="cat-name">${esc(a.name)}${a.id === def && state.accounts.length > 1 ? ' <span class="tag-soft">Default</span>' : ''}</span>
-      <span class="cat-nums"><strong class="${bal[a.id] < 0 ? 'neg-txt' : ''}">${signed(bal[a.id], false)}</strong></span></div></button></li>`;
-  return `
-  <header class="page-head"><h1 tabindex="-1">Wallet</h1></header>
-  <section class="stats" aria-label="Totals">
-    ${stat('All your money', signed(total, false), saved ? `incl. ${money(saved)} in savings` : 'accounts + savings', total < 0)}
-    ${stat('Owed to you', money(sum('in')))}
-    ${stat('You owe', money(sum('out')))}
-  </section>
-  <section><div class="section-head"><h2>Accounts</h2><span>${state.accounts.length > 1 ? `<button class="link-btn" data-act="transfer">Move money</button><span class="muted" aria-hidden="true"> · </span>` : ''}<button class="link-btn" data-act="acct-add">+ Add</button></span></div>
-    ${state.accounts.length || state.goals.length ? `<ul class="list card">${state.accounts.map(acctRow).join('')}${state.goals.length ? `<li><a class="cat-row" href="#savings"><div class="cat-top"><span class="cat-name">Savings <span class="tag-soft">${plural(state.goals.length, 'goal')}</span></span><span class="cat-nums"><strong>${money(saved)}</strong></span></div></a></li>` : ''}</ul>` : ''}
-    ${state.accounts.length ? '' : '<div class="card empty" style="margin-top:8px">Add where your money is — cash, bank, card — to see what’s in each.</div>'}
-  </section>
-  <section><div class="section-head"><h2>Debts</h2><button class="link-btn" data-act="debt-add">+ Add</button></div>
-    ${open.length ? `<ul class="list card">${open.sort((a, b) => (a.due || '9').localeCompare(b.due || '9') || a.ts - b.ts).map(debtRow).join('')}</ul>` : `<div class="card empty">Money you lent or borrowed. Add it here, or type “lent Ali 200” on Today.</div>`}
-  </section>
-  ${settled.length ? `<details class="more"><summary>Settled (${settled.length})</summary><ul class="list card" style="margin-top:8px">${settled.map(debtRow).join('')}</ul></details>` : ''}`;
-}
-function debtRow(d) {
-  const left = debtLeft(d), paid = d.amount - left, open = left > 0.004;
-  const days = d.due && open ? daysUntil(d.due) : null;
-  const cls = days == null ? '' : days < 0 ? 'is-overdue' : days <= 3 ? 'is-soon' : '';
-  const meta = [d.dir === 'in' ? 'Owes you' : 'You owe'];
-  if (paid > 0) meta.push(open ? `${money(paid)} of ${money(d.amount)} paid` : `${money(d.amount)} settled`);
-  if (days != null) meta.push(`<span class="when">${days < 0 ? 'Overdue' : 'Due'} ${shortDate(d.due)}</span>`);
-  if (d.note) meta.push(esc(d.note));
-  return `<li class="sub-row ${cls}">
-    <button class="row-main" data-act="debt-edit" data-id="${esc(d.id)}"><span class="sub-main"><span class="sub-name">${esc(d.who)}</span><span class="sub-meta">${meta.join(' · ')}</span></span>
-    <span class="amt ${open ? (d.dir === 'in' ? 'in' : 'out') : ''}">${money(open ? left : d.amount)}</span></button>
-    ${open ? `<div class="row-actions"><button class="btn small secondary" data-act="debt-pay" data-id="${esc(d.id)}">${icon('check')}${d.dir === 'in' ? 'Got paid' : 'Paid'}</button></div>` : ''}</li>`;
-}
-
-function vSavings() {
-  const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const savedBy = {};
-  let total = 0, month = 0;
-  for (const g of state.goals) if (g.start) { savedBy[g.id] = g.start; total += g.start; }
-  for (const e of state.entries) if (e.type === 'save') {
-    savedBy[e.goal] = (savedBy[e.goal] || 0) + e.amount;
-    total += e.amount;
-    if (e.ts >= monthStart) month += e.amount;
-  }
-  const goals = [...state.goals].sort((a, b) => (a.ts || 0) - (b.ts || 0));
-  const toGo = goals.reduce((t, g) => t + Math.max(0, (g.target || 0) - (savedBy[g.id] || 0)), 0);
-  const recent = state.entries.filter(e => e.type === 'save').sort(byTsDesc).slice(0, 8);
-  return `
-  <header class="page-head"><h1 tabindex="-1">Savings</h1>
-    <button class="btn primary" data-act="goal-add">${icon('plus')}Goal</button></header>
-  <section class="stats" aria-label="Totals">
-    ${stat('Saved', money(total))}
-    ${stat('This month', signed(month, false), '', month < 0)}
-    ${stat('To go', money(toGo))}
-  </section>
-  <section><h2>Goals</h2>
-    ${goals.length ? `<ul class="list card">${goals.map(g => goalRow(g, savedBy[g.id] || 0)).join('')}</ul>`
-      : `<div class="card empty">Make a goal — emergency fund, car, trip — then put money in.</div>`}
-  </section>
-  ${recent.length ? `<section><h2>Recent</h2><ul class="list card">${recent.map(e => entryItem(e, true)).join('')}</ul></section>` : ''}`;
-}
-function goalRow(g, saved) {
-  const pct = g.target > 0 ? saved / g.target * 100 : 0;
-  const done = g.target > 0 && saved >= g.target;
-  const left = (g.target || 0) - saved;
-  let status = '';
-  if (done) status = `<div class="cat-status done">${icon('check')}Reached</div>`;
-  else if (g.target > 0 && g.date) {
-    const days = daysUntil(g.date);
-    const dateTxt = parseYmd(g.date).toLocaleDateString(undefined, { month:'short', year:'numeric' });
-    status = days < 0
-      ? `<div class="cat-status warn">${icon('alert')}${money(left)} to go · was due ${dateTxt}</div>`
-      : `<div class="cat-status">${money(left / Math.max(1, Math.ceil(days / 30.44)))} / month to reach it by ${dateTxt}</div>`;
-  } else if (g.target > 0) status = `<div class="cat-status">${money(left)} to go</div>`;
-  return `<li class="goal-row">
-    <button class="cat-row" data-act="goal-edit" data-id="${esc(g.id)}">
-      <div class="cat-top"><span class="cat-name">${esc(g.name)}</span><span class="cat-nums"><strong>${money(saved)}</strong>${g.target > 0 ? ` of ${money(g.target)}` : ''}</span></div>
-      ${g.target > 0 ? `<div class="meter${done ? ' done' : ''}" role="progressbar" aria-label="${esc(g.name)} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(Math.max(pct, 0), 100))}"><span style="width:${Math.min(Math.max(pct, 0), 100)}%"></span></div>` : ''}
-      ${status}
-    </button>
-    <button class="btn small secondary" data-act="goal-move" data-id="${esc(g.id)}" aria-label="Add or take out money: ${esc(g.name)}">${icon('plus')}Add money</button></li>`;
 }
 
 function vSettings() {
@@ -1265,7 +921,7 @@ function bannerHTML() {
 }
 
 /* ---------- render & routing ---------- */
-const VIEWS = { today:vToday, notes:vNotes, timeline:vTimeline, budget:vBudget, wallet:vWallet, savings:vSavings, subs:vSubs, settings:vSettings };
+const VIEWS = { today:vToday, notes:vNotes, subs:vSubs, timeline:vTimeline, settings:vSettings };
 let view = 'today';
 const main = $('#main');
 function render() {
@@ -1342,370 +998,149 @@ function openDialog({ title, body, submit = 'Save', extra = '', onSubmit, submit
 const formErr = (form, msg) => { $('.dlg-err', form).textContent = msg; return false; };
 const parseTags = s => [...new Set(String(s || '').split(/[\s,]+/).map(t => t.replace(/^#/, '').toLowerCase()).filter(Boolean))];
 
-// Saved amount = money saved before Daybook (`start`) plus every deposit and withdrawal.
-const goalSaved = g => (g.start || 0) + state.entries.reduce((t, e) => t + (e.type === 'save' && e.goal === g.id ? e.amount : 0), 0);
-function editGoal(id) {
-  const g = id ? goalById(id) : null;
-  const saved = g ? Math.round(goalSaved(g) * 100) / 100 : 0;
-  const form = openDialog({
-    title: g ? 'Edit goal' : 'New goal',
-    submit: g ? 'Save' : 'Add',
-    body: `<label class="field"><span>Name</span><input name="name" value="${esc(g?.name || '')}" placeholder="Emergency fund, car, travel…" required autocomplete="off"></label>
-      <div class="field-row"><label class="field"><span>Target (${esc(state.settings.currency)})</span><input name="target" type="number" step="1" min="0" inputmode="decimal" value="${g?.target || ''}" placeholder="Optional"></label>
-        <label class="field"><span>By</span><input name="date" type="date" value="${g?.date || ''}"></label></div>
-      <label class="field"><span>${g ? 'Saved so far' : 'Already saved'} (${esc(state.settings.currency)})</span><input name="start" type="number" step="0.01" min="0" inputmode="decimal" value="${g ? saved : ''}" placeholder="0"></label>
-      <p class="help">Include money you saved before using Daybook.</p>`,
-    extra: g ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const name = String(fd.get('name')).trim(), target = parseFloat(fd.get('target')) || 0, date = fd.get('date') || null;
-      if (!name) return formErr(form, 'Give it a name.');
-      if (target < 0) return formErr(form, 'The target can’t be negative.');
-      const now = parseFloat(fd.get('start')) || 0;
-      if (now < 0) return formErr(form, 'The saved amount can’t be negative.');
-      // Changing "saved so far" adjusts the starting amount, so deposit history stays as it was.
-      if (g) Object.assign(g, { name, target, date, start: Math.round(((g.start || 0) + now - saved) * 100) / 100 });
-      else state.goals.push({ id:uid(), name, target, date, start:now, ts:Date.now() });
-      save(); toast(g ? 'Saved' : `${name} added`);
-    },
-  });
-  const del = $('[data-del]', form);
-  if (del) del.onclick = () => {
-    if (!confirm(`Delete “${g.name}”? Its deposits stay in your Timeline.`)) return;
-    const idx = state.goals.indexOf(g);
-    state.goals.splice(idx, 1); dlg.close(); save();
-    toast(`${g.name} deleted`, { action:'Undo', onAction() { state.goals.splice(idx, 0, g); save(); } });
-  };
-}
-// Put money into a goal, take it out, or edit an existing saving entry.
-function moveDialog(goalId, e) {
-  if (!state.goals.length) { editGoal(); return; }
-  const g = goalById(goalId) || state.goals[0];
-  const out = e ? e.amount < 0 : false;
-  const when = new Date(e ? e.ts : Date.now());
-  const radio = (v, label, ic, on) => `<label><input type="radio" name="dir" value="${v}"${on ? ' checked' : ''}><span>${icon(ic)}${label}</span></label>`;
-  const form = openDialog({
-    title: e ? 'Edit saving' : esc(g.name),
-    submit: 'Save',
-    body: `<fieldset class="type-seg"><legend class="sr-only">Direction</legend>${radio('in', 'Put in', 'in', !out)}${radio('out', 'Take out', 'out', out)}</fieldset>
-      <div class="field-row"><label class="field"><span>Amount (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e ? Math.abs(e.amount) : ''}" required></label>
-        <label class="field"><span>Goal</span><select name="goal">${goalOptions(g.id)}</select></label></div>
-      <div class="field-row${state.accounts.length ? '' : ' solo'}"><label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${ymd(when)}T${pad(when.getHours())}:${pad(when.getMinutes())}" required></label>
-        ${acctField(e ? e.acct : defaultAcct())}</div>`,
-    extra: e ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const amount = parseFloat(fd.get('amount')), ts = new Date(fd.get('ts')).getTime(), goal = fd.get('goal');
-      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
-      const value = fd.get('dir') === 'out' ? -amount : amount, name = goalById(goal)?.name || 'Savings', acct = fd.get('acct') || null;
-      if (e) Object.assign(e, { amount:value, goal, ts, text:name, acct });
-      else state.entries.push({ id:uid(), type:'save', text:name, amount:value, goal, acct, tags:[], ts, pinned:false });
-      save(); toast(`${value < 0 ? 'Took out' : 'Saved'} ${money(amount)} · ${name}`);
-    },
-  });
-  const del = $('[data-del]', form);
-  if (del) del.onclick = () => {
-    const idx = state.entries.indexOf(e);
-    state.entries.splice(idx, 1); dlg.close(); save();
-    toast('Entry deleted', { action:'Undo', onAction() { state.entries.splice(idx, 0, e); save(); } });
-  };
-}
+const cur = () => esc(state.settings.currency);
+const localTs = ts => { const d = new Date(ts); return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
-function editEntry(id) {
-  const e = state.entries.find(x => x.id === id); if (!e) return;
-  if (e.type === 'save') { moveDialog(e.goal, e); return; }
-  if (e.type === 'transfer') { transferDialog(e); return; }
-  const d = new Date(e.ts);
-  const local = `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const radio = (v) => { const [ic, l] = TYPE_META[v]; return `<label><input type="radio" name="type" value="${v}"${e.type === v ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
-  const form = openDialog({
-    title: 'Edit entry',
-    body: `<fieldset class="type-seg"><legend class="sr-only">Type</legend>${radio('note')}${radio('expense')}${radio('income')}</fieldset>
-      <label class="field"><span>${e.type === 'note' ? 'Note' : 'Description'}</span><textarea name="text" rows="${e.type === 'note' ? Math.min(12, Math.max(3, e.text.split('\n').length + 1)) : 3}" required data-list>${esc(e.text)}</textarea></label>
-      <div class="field-row money-only"><label class="field"><span>Amount (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e.amount ?? ''}"></label>
-        <label class="field expense-only"><span>Category</span><select name="cat">${catOptions(catById(e.cat).id)}</select></label></div>
-      ${acctField(e.type === 'note' ? defaultAcct() : e.acct, 'money-only')}
-      <div class="field-row"><label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${local}" required></label>
-        <label class="field"><span>Tags</span><input name="tags" value="${esc((e.tags || []).join(', '))}" placeholder="work, travel" autocomplete="off"></label></div>
-      <label class="check"><input type="checkbox" name="pinned"${e.pinned ? ' checked' : ''}>Pin to Today</label>`,
-    extra: `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>`,
-    onSubmit(fd, form) {
-      const type = fd.get('type'), text = String(fd.get('text')).trim(), amount = parseFloat(fd.get('amount'));
-      if (!text) return formErr(form, 'Write something first.');
-      if (type !== 'note' && !(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      const ts = new Date(fd.get('ts')).getTime();
-      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
-      Object.assign(e, { type, text, amount: type === 'note' ? null : amount, cat: type === 'expense' ? fd.get('cat') : null,
-        acct: type === 'note' ? null : fd.get('acct') || null,
-        ts, tags: type === 'note' ? [...new Set([...parseTags(fd.get('tags')), ...[...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase())])] : parseTags(fd.get('tags')),
-        pinned: fd.get('pinned') === 'on' });
-      save(); toast('Saved');
-    },
-  });
-  form.dataset.type = e.type;
-  form.addEventListener('change', ev => { if (ev.target.name === 'type') form.dataset.type = ev.target.value; });
-  $('[data-del]', form).onclick = () => {
-    const idx = state.entries.indexOf(e);
-    state.entries.splice(idx, 1); dlg.close(); save();
-    toast('Entry deleted', { action:'Undo', onAction() { state.entries.splice(idx, 0, e); save(); } });
-  };
+/* ---------- subscriptions: each renewal is taken from Main ---------- */
+const subById = id => state.subs.find(x => x.id === id);
+const activeSubs = () => state.subs.filter(x => x.status === 'active');
+const subsMonthly = () => activeSubs().reduce((t, x) => t + x.amount * (PER_MONTH[x.cycle] || 1), 0);
+function nextDate(x) {
+  const d = parseYmd(x.next);
+  if (x.cycle === 'weekly') { d.setDate(d.getDate() + 7); return ymd(d); }
+  const add = { monthly:1, quarterly:3, yearly:12 }[x.cycle] || 1;
+  const anchor = x.day || d.getDate();
+  const y = d.getFullYear(), m = d.getMonth() + add;
+  return ymd(new Date(y, m, Math.min(anchor, new Date(y, m + 1, 0).getDate())));
 }
-
+function subRow(x) {
+  const off = x.status !== 'active', d = daysUntil(x.next);
+  const when = off ? (x.status === 'paused' ? 'Paused' : 'Cancelled') : d === 0 ? 'Renews today' : d === 1 ? 'Renews tomorrow' : `Renews ${shortDate(x.next)}`;
+  return `<li><button class="sub-row entry" data-act="sub-edit" data-id="${esc(x.id)}" style="padding-right:16px">
+    <span class="sub-main"><span class="sub-name">${esc(x.name)}</span><span class="sub-meta">${when} · ${CYCLES[x.cycle] || x.cycle}</span></span>
+    <span class="amt out">−${money(x.amount)}</span></button></li>`;
+}
+function vSubs() {
+  const active = activeSubs().sort((a, b) => a.next.localeCompare(b.next));
+  const others = state.subs.filter(x => x.status !== 'active');
+  const monthly = subsMonthly();
+  return `
+  <header class="page-head"><h1 tabindex="-1">Subscriptions</h1>
+    <button class="btn primary" data-act="sub-add">${icon('plus')}Add</button></header>
+  <section class="stats two" aria-label="Totals">
+    ${stat('Per month', money(monthly))}
+    ${stat('Per year', money(monthly * 12))}
+  </section>
+  <p class="help" style="margin:0 0 20px">Each renewal is taken from Main on its date.</p>
+  <section>
+    ${active.length ? `<ul class="list card">${active.map(subRow).join('')}</ul>` : '<div class="card empty">No subscriptions yet</div>'}
+  </section>
+  ${others.length ? `<details class="more"><summary>Paused & cancelled (${others.length})</summary><ul class="list card" style="margin-top:8px">${others.map(subRow).join('')}</ul></details>` : ''}`;
+}
 function editSub(id) {
-  const s = id ? subById(id) : null;
-  const v = s || { name:'', amount:'', cycle:'monthly', next: ymd(new Date()), cat:'subscriptions', status:'active' };
+  const x = id ? subById(id) : null;
+  const v = x || { name:'', amount:'', cycle:'monthly', next:ymd(new Date()), status:'active' };
   const form = openDialog({
-    title: s ? 'Edit subscription' : 'Add subscription',
-    submit: s ? 'Save' : 'Add',
+    title: x ? esc(x.name) : 'New subscription',
+    submit: x ? 'Save' : 'Add',
     body: `<label class="field"><span>Name</span><input name="name" value="${esc(v.name)}" placeholder="Netflix, gym, phone plan…" required autocomplete="off"></label>
-      <div class="field-row"><label class="field"><span>Price (${esc(state.settings.currency)})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
+      <div class="field-row"><label class="field"><span>Price (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
         <label class="field"><span>Billed</span><select name="cycle">${Object.entries(CYCLES).map(([k, l]) => `<option value="${k}"${v.cycle === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <div class="field-row"><label class="field"><span>Next renewal</span><input name="next" type="date" value="${v.next}" required></label>
-        <label class="field"><span>Category</span><select name="cat">${catOptions(catById(v.cat).id)}</select></label></div>
-      ${s ? `<label class="field"><span>Status</span><select name="status">${['active', 'paused', 'cancelled'].map(x => `<option value="${x}"${v.status === x ? ' selected' : ''}>${x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>` : ''}`,
-    extra: s ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
+        ${x ? `<label class="field"><span>Status</span><select name="status">${['active', 'paused', 'cancelled'].map(k => `<option value="${k}"${v.status === k ? ' selected' : ''}>${k[0].toUpperCase() + k.slice(1)}</option>`).join('')}</select></label>` : ''}</div>`,
+    extra: x ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
     onSubmit(fd, form) {
       const name = String(fd.get('name')).trim(), amount = parseFloat(fd.get('amount')), next = fd.get('next');
       if (!name) return formErr(form, 'Give it a name.');
       if (!(amount > 0)) return formErr(form, 'Enter a price above zero.');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return formErr(form, 'Pick the next renewal date.');
-      const data = { name, amount, cycle: fd.get('cycle'), next, day: parseYmd(next).getDate(), cat: fd.get('cat'), status: fd.get('status') || 'active' };
-      if (s) Object.assign(s, data); else state.subs.push({ id:uid(), ...data });
-      save(); toast(s ? 'Saved' : `${name} added`);
+      const data = { name, amount, cycle: fd.get('cycle'), next, day: parseYmd(next).getDate(), cat: x?.cat || 'subscriptions', status: fd.get('status') || 'active' };
+      if (x) Object.assign(x, data); else state.subs.push({ id:uid(), ts:Date.now(), ...data });
+      save();
+      if (!runSubs()) toast(x ? 'Saved' : `${name} added · renews ${shortDate(next)}`);
     },
   });
-  if (s) $('[data-del]', form).onclick = () => {
-    const idx = state.subs.indexOf(s);
+  if (x) $('[data-del]', form).onclick = () => {
+    const idx = state.subs.indexOf(x);
     state.subs.splice(idx, 1); dlg.close(); save();
-    toast(`${s.name} deleted`, { action:'Undo', onAction() { state.subs.splice(idx, 0, s); save(); } });
+    toast(`${x.name} deleted`, { action:'Undo', onAction() { state.subs.splice(idx, 0, x); save(); } });
   };
 }
-
-function editCat(id) {
-  const c = id ? state.categories.find(x => x.id === id) : null;
-  const form = openDialog({
-    title: c ? esc(c.name) : 'New category',
-    submit: c ? 'Save' : 'Add',
-    body: `<label class="field"><span>Name</span><input name="name" value="${esc(c?.name || '')}" required autocomplete="off"></label>
-      <label class="field"><span>Monthly limit (${esc(state.settings.currency)})</span><input name="budget" type="number" step="1" min="0" inputmode="decimal" value="${c?.budget || ''}" placeholder="No limit"></label>`,
-    extra: c && c.id !== 'other' ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const name = String(fd.get('name')).trim(), budget = parseFloat(fd.get('budget')) || 0;
-      if (!name) return formErr(form, 'Give it a name.');
-      if (budget < 0) return formErr(form, 'The limit can’t be negative.');
-      if (state.categories.some(x => x !== c && x.name.toLowerCase() === name.toLowerCase())) return formErr(form, 'You already have a category with that name.');
-      if (c) Object.assign(c, { name, budget });
-      else state.categories.splice(state.categories.length - 1, 0, { id:uid(), name, budget, color:CAT_COLORS[state.categories.length % CAT_COLORS.length] });
-      save();
-    },
-  });
-  const del = $('[data-del]', form);
-  if (del) del.onclick = () => {
-    if (!confirm(`Delete “${c.name}”? Its spending moves to Other.`)) return;
-    for (const e of state.entries) if (e.cat === c.id) e.cat = 'other';
-    for (const s of state.subs) if (s.cat === c.id) s.cat = 'other';
-    state.categories = state.categories.filter(x => x !== c);
-    dlg.close(); save(); toast(`${c.name} deleted`);
-  };
-}
-
-const cur = () => esc(state.settings.currency);
-const localTs = ts => { const d = new Date(ts); return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-function deleteBtn(form, list, item, label, after) {
-  const del = $('[data-del]', form);
-  if (del) del.onclick = () => {
-    const idx = state[list].indexOf(item);
-    state[list].splice(idx, 1); dlg.close(); save(); after?.();
-    toast(`${label} deleted`, { action:'Undo', onAction() { state[list].splice(idx, 0, item); save(); } });
-  };
-}
-
-// An account's balance is its starting amount plus every entry logged to it.
-// Editing the balance adjusts the starting amount, so history stays untouched.
-function editAccount(id) {
-  const a = id ? acctById(id) : null;
-  const bal = a ? balances()[a.id] : 0;
-  const form = openDialog({
-    title: a ? esc(a.name) : 'New account',
-    submit: a ? 'Save' : 'Add',
-    body: `<label class="field"><span>Name</span><input name="name" value="${esc(a?.name || '')}" placeholder="Cash, Emirates NBD, credit card…" required autocomplete="off"></label>
-      <label class="field"><span>Balance now (${cur()})</span><input name="bal" type="number" step="0.01" inputmode="decimal" value="${a ? Math.round(bal * 100) / 100 : ''}" placeholder="0"></label>
-      <p class="help">Use a minus for a card you owe on.</p>
-      <label class="check"><input type="checkbox" name="def"${!a && !state.accounts.length || a && a.id === defaultAcct() ? ' checked' : ''}>Default for new entries</label>`,
-    extra: a ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const name = String(fd.get('name')).trim(), nb = parseFloat(fd.get('bal')) || 0;
-      if (!name) return formErr(form, 'Give it a name.');
-      if (state.accounts.some(x => x !== a && x.name.toLowerCase() === name.toLowerCase())) return formErr(form, 'You already have an account with that name.');
-      let target = a;
-      if (a) Object.assign(a, { name, start: Math.round(((a.start || 0) + nb - bal) * 100) / 100 });
-      else state.accounts.push(target = { id:uid(), name, start:nb, ts:Date.now() });
-      if (fd.get('def') === 'on') state.settings.acct = target.id;
-      else if (state.settings.acct === target.id) state.settings.acct = null;
-      save(); toast(a ? 'Saved' : `${name} added`);
-    },
-  });
-  if (a) $('[data-del]', form).onclick = () => {
-    if (!confirm(`Delete “${a.name}”? Its entries stay, just without an account.`)) return;
-    const idx = state.accounts.indexOf(a);
-    state.accounts.splice(idx, 1); dlg.close(); save();
-    toast(`${a.name} deleted`, { action:'Undo', onAction() { state.accounts.splice(idx, 0, a); save(); } });
-  };
-}
-
-function transferDialog(e) {
-  if (state.accounts.length < 2) { toast('Add two accounts first'); return; }
-  const from = e ? e.acct : defaultAcct(), to = e ? e.to : state.accounts.find(a => a.id !== from)?.id;
-  const form = openDialog({
-    title: e ? 'Edit transfer' : 'Move money',
-    body: `<div class="field-row"><label class="field"><span>From</span><select name="from">${acctOptions(from)}</select></label>
-        <label class="field"><span>To</span><select name="to">${acctOptions(to)}</select></label></div>
-      <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e ? e.amount : ''}" required></label>
-        <label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${localTs(e ? e.ts : Date.now())}" required></label></div>`,
-    extra: e ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const acct = fd.get('from'), toId = fd.get('to'), amount = parseFloat(fd.get('amount')), ts = new Date(fd.get('ts')).getTime();
-      if (acct === toId) return formErr(form, 'Pick two different accounts.');
-      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
-      const text = `${acctById(acct).name} → ${acctById(toId).name}`;
-      if (e) Object.assign(e, { acct, to:toId, amount, ts, text });
-      else state.entries.push({ id:uid(), type:'transfer', text, amount, acct, to:toId, tags:[], ts, pinned:false });
-      save(); toast(`Moved ${money(amount)}`);
-    },
-  });
-  if (e) deleteBtn(form, 'entries', e, 'Transfer');
-}
-
-function editDebt(id) {
-  const d = id ? state.debts.find(x => x.id === id) : null;
-  const radio = (v, label, ic) => `<label><input type="radio" name="dir" value="${v}"${(d?.dir || 'in') === v ? ' checked' : ''}><span>${icon(ic)}${label}</span></label>`;
-  const pays = d?.pays || [];
-  const form = openDialog({
-    title: d ? esc(d.who) : 'New debt',
-    submit: d ? 'Save' : 'Add',
-    body: `<fieldset class="type-seg"><legend class="sr-only">Who owes</legend>${radio('in', 'They owe me', 'in')}${radio('out', 'I owe', 'out')}</fieldset>
-      <label class="field"><span>Person</span><input name="who" value="${esc(d?.who || '')}" required autocomplete="off"></label>
-      <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${d?.amount || ''}" required></label>
-        <label class="field"><span>Due</span><input name="due" type="date" value="${d?.due || ''}"></label></div>
-      <label class="field"><span>Note</span><input name="note" value="${esc(d?.note || '')}" placeholder="Optional" autocomplete="off"></label>
-      ${state.accounts.length ? `${acctField(d ? d.acct : defaultAcct())}<p class="help">Lending takes the money out of this account and being paid back puts it in. Pick None if no cash moved, like a bill you split.</p>` : ''}
-      ${pays.length ? `<span class="field" style="margin-bottom:6px"><span>Paid back</span></span><ul class="pay-list">${pays.map(p => `<li><span>${shortDate(ymd(new Date(p.ts)))}</span><span class="amt">${money(p.amount)}</span><button type="button" class="icon-btn" data-pay="${esc(p.id)}" aria-label="Remove payment of ${money(p.amount)}">${icon('x')}</button></li>`).join('')}</ul>` : ''}`,
-    extra: d ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const who = String(fd.get('who')).trim(), amount = parseFloat(fd.get('amount'));
-      if (!who) return formErr(form, 'Who is it?');
-      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      const data = { who, amount, dir: fd.get('dir'), due: fd.get('due') || null, note: String(fd.get('note')).trim(), acct: fd.get('acct') || null, pays: kept };
-      if (d) Object.assign(d, data); else state.debts.push({ id:uid(), ts:Date.now(), ...data });
-      save(); toast(d ? 'Saved' : `${who} added`);
-    },
-  });
-  let kept = [...pays];
-  for (const b of $$('[data-pay]', form)) b.onclick = () => { kept = kept.filter(p => p.id !== b.dataset.pay); b.closest('li').remove(); };
-  if (d) deleteBtn(form, 'debts', d, d.who);
-}
-function payDebt(id) {
-  const d = state.debts.find(x => x.id === id); if (!d) return;
-  const left = debtLeft(d);
-  openDialog({
-    title: d.dir === 'in' ? `${esc(d.who)} paid you` : `You paid ${esc(d.who)}`,
-    body: `<div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${Math.round(left * 100) / 100}" required></label>
-        <label class="field"><span>Date</span><input name="date" type="date" value="${ymd(new Date())}" required></label></div>`,
-    onSubmit(fd, form) {
-      const amount = parseFloat(fd.get('amount'));
-      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      if (amount > left + 0.004) return formErr(form, `Only ${money(left)} is left.`);
-      const day = fd.get('date'), ts = /^\d{4}-\d{2}-\d{2}$/.test(day) ? parseYmd(day).getTime() + 12 * 36e5 : Date.now();
-      d.pays = [...(d.pays || []), { id:uid(), amount, ts }];
-      save(); toast(debtLeft(d) <= 0.004 ? `${d.who} settled` : `${money(debtLeft(d))} left`);
-    },
-  });
-}
-
-function editRecurring(id, type = 'expense') {
-  const r = id ? state.recurring.find(x => x.id === id) : null;
-  const v = r || { type, text:'', amount:'', cycle:'monthly', next:ymd(new Date()), cat:'bills', acct:defaultAcct(), status:'active' };
-  const radio = t => { const [ic, l] = TYPE_META[t]; return `<label><input type="radio" name="type" value="${t}"${v.type === t ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
-  const form = openDialog({
-    title: r ? esc(r.text) : v.type === 'income' ? 'New income' : 'New bill',
-    submit: r ? 'Save' : 'Add',
-    body: `<fieldset class="type-seg"><legend class="sr-only">Type</legend>${radio('expense')}${radio('income')}</fieldset>
-      <label class="field"><span>Name</span><input name="text" value="${esc(v.text)}" placeholder="${v.type === 'income' ? 'Salary, side job, rent you collect…' : 'Rent, phone bill, Netflix…'}" required autocomplete="off"></label>
-      <div class="field-row"><label class="field"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${v.amount}" required></label>
-        <label class="field"><span>Repeats</span><select name="cycle">${Object.entries(CYCLES).map(([k, l]) => `<option value="${k}"${v.cycle === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label></div>
-      <div class="field-row"><label class="field"><span>Next on</span><input name="next" type="date" value="${v.next}" required></label>
-        <label class="field expense-only"><span>Category</span><select name="cat">${catOptions(catById(v.cat).id)}</select></label></div>
-      ${acctField(v.acct)}
-      <div class="field-row income-only"><label class="field"><span>Save from each payment</span><input name="saveAmt" type="number" step="0.01" min="0" inputmode="decimal" value="${v.saveAmt || ''}" placeholder="0"></label>
-        <label class="field"><span>Into</span><select name="saveGoal">${state.goals.length ? goalOptions(v.saveGoal) : '<option value="">Savings (new goal)</option>'}</select></label></div>
-      ${r ? `<label class="check"><input type="checkbox" name="paused"${r.status === 'paused' ? ' checked' : ''}>Paused</label>` : ''}
-      <p class="help" style="margin-top:0">Added to your history automatically on each date.</p>`,
-    extra: r ? `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>` : '',
-    onSubmit(fd, form) {
-      const text = String(fd.get('text')).trim(), amount = parseFloat(fd.get('amount')), next = fd.get('next');
-      if (!text) return formErr(form, 'Give it a name.');
-      if (!(amount > 0)) return formErr(form, 'Enter an amount above zero.');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return formErr(form, 'Pick the next date.');
-      const type = fd.get('type');
-      const saveAmt = type === 'income' ? parseFloat(fd.get('saveAmt')) || 0 : 0;
-      if (saveAmt < 0 || saveAmt > amount) return formErr(form, 'The amount to save must be between 0 and the income.');
-      let saveGoal = saveAmt > 0 ? fd.get('saveGoal') || null : null;
-      if (saveAmt > 0 && !goalById(saveGoal)) { const ng = { id:uid(), name:'Savings', target:0, date:null, start:0, ts:Date.now() }; state.goals.push(ng); saveGoal = ng.id; }
-      const data = { type, text, amount, cycle: fd.get('cycle'), next, day: parseYmd(next).getDate(), cat: type === 'expense' ? fd.get('cat') : null,
-        acct: fd.get('acct') || null, status: fd.get('paused') === 'on' ? 'paused' : 'active', saveAmt, saveGoal };
-      if (r) Object.assign(r, data); else state.recurring.push({ id:uid(), ts:Date.now(), ...data });
-      save();
-      const n = runRecurring();
-      if (!n) toast(r ? 'Saved' : `${text} added · next on ${shortDate(next)}`);
-    },
-  });
-  form.dataset.type = v.type;
-  form.addEventListener('change', ev => { if (ev.target.name === 'type') form.dataset.type = ev.target.value; });
-  if (r) deleteBtn(form, 'recurring', r, r.text);
-}
-// Log every recurring item whose date has come. Ids are derived from the item and date,
-// so two synced devices logging the same day produce one entry, not two.
-function runRecurring() {
+// Log each renewal that has come due as spending from Main. Ids come from the subscription and date,
+// so two synced devices never log the same renewal twice. Only the last month is caught up.
+function runSubs() {
   const today = ymd(new Date());
   let n = 0, changed = false, last = '';
-  const fresh = id => !state.entries.some(e => e.id === id) && !state.deleted['entries:' + id];
-  for (const r of state.recurring) {
-    if (r.status === 'paused') continue;
-    for (let i = 0; i < 60 && r.next <= today; i++) {
-      const id = `r-${r.id}-${r.next}`, ts = parseYmd(r.next).getTime() + 9 * 36e5;
-      if (fresh(id)) {
-        state.entries.push({ id, type:r.type, text:r.text, amount:r.amount, cat:r.type === 'expense' ? r.cat : null, acct:r.acct || null, tags:[], ts, pinned:false, recId:r.id });
-        n++; last = `${r.text} logged`;
+  for (const x of state.subs) {
+    if (x.status !== 'active') continue;
+    for (let i = 0; i < 60 && x.next <= today; i++) {
+      const id = `s-${x.id}-${x.next}`;
+      if (daysUntil(x.next) >= -31 && !state.entries.some(e => e.id === id) && !state.deleted['entries:' + id]) {
+        state.entries.push({ id, type:'expense', text:x.name, amount:x.amount, cat:x.cat || 'subscriptions', tags:['subscription'], ts:parseYmd(x.next).getTime() + 9 * 36e5, pinned:false, subId:x.id });
+        n++; last = `${x.name} renewed · ${money(x.amount)} from Main`;
       }
-      // Income with an auto-save amount: move that part straight into the savings goal.
-      const g = r.type === 'income' && r.saveAmt > 0 && goalById(r.saveGoal);
-      if (g && fresh(id + '-s')) {
-        state.entries.push({ id:id + '-s', type:'save', text:g.name, amount:r.saveAmt, goal:g.id, acct:r.acct || null, tags:[], ts:ts + 60000, pinned:false, recId:r.id });
-        last = `${r.text} logged · ${money(r.saveAmt)} to ${g.name}`;
-      }
-      r.next = nextDate(r);
-      changed = true;
-    }
-  }
-  // Subscriptions renew on their own too. Only the last month is logged, so a long-forgotten one doesn't flood the history.
-  for (const sub of state.subs) {
-    if (sub.status !== 'active') continue;
-    for (let i = 0; i < 60 && sub.next <= today; i++) {
-      const id = `s-${sub.id}-${sub.next}`;
-      if (daysUntil(sub.next) >= -31 && fresh(id)) {
-        state.entries.push({ id, type:'expense', text:sub.name, amount:sub.amount, cat:sub.cat || 'subscriptions', acct:defaultAcct(), tags:['subscription'], ts:parseYmd(sub.next).getTime() + 9 * 36e5, pinned:false, subId:sub.id });
-        n++; last = `${sub.name} logged`;
-      }
-      sub.next = nextDate(sub);
+      x.next = nextDate(x);
       changed = true;
     }
   }
   if (changed) save();
-  if (n) toast(n === 1 ? last : `${n} recurring entries logged`);
+  if (n) toast(n === 1 ? last : `${n} subscription renewals taken from Main`);
   return n;
 }
 // With sync on, wait for the first sync so this device logs against the latest data.
-const autoRecurring = () => { if (!(Sync.enabled && Sync.st.on)) runRecurring(); };
+const autoSubs = () => { if (!(Sync.enabled && Sync.st.on)) runSubs(); };
+
+function editEntry(id) {
+  const e = state.entries.find(x => x.id === id); if (!e) return;
+  const kind = e.type === 'save' && e.amount < 0 ? 'withdraw' : e.type;
+  const radio = v => { const [ic, l] = TYPE_META[v]; return `<label><input type="radio" name="type" value="${v}"${kind === v ? ' checked' : ''}><span>${icon(ic)}${l}</span></label>`; };
+  const form = openDialog({
+    title: e.type === 'note' ? 'Edit note' : 'Edit entry',
+    body: `<fieldset class="type-seg wrap"><legend class="sr-only">Type</legend>${CAP_TYPES.map(radio).join('')}</fieldset>
+      <label class="field"><span class="note-only">Note</span><span class="money-only">Description</span><textarea name="text" rows="${e.type === 'note' ? Math.min(12, Math.max(3, e.text.split('\n').length + 1)) : 2}" required data-list>${esc(e.text)}</textarea></label>
+      <div class="field-row"><label class="field money-only"><span>Amount (${cur()})</span><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" value="${e.amount != null ? Math.abs(e.amount) : ''}"></label>
+        <label class="field"><span>Date & time</span><input type="datetime-local" name="ts" value="${localTs(e.ts)}" required></label></div>
+      <label class="check note-only"><input type="checkbox" name="pinned"${e.pinned ? ' checked' : ''}>Pin to Home</label>`,
+    extra: `<button type="button" class="btn danger-ghost" data-del>${icon('trash')}Delete</button>`,
+    onSubmit(fd, form) {
+      const t = fd.get('type'), text = String(fd.get('text')).trim(), amount = parseFloat(fd.get('amount'));
+      if (!text) return formErr(form, 'Write something first.');
+      if (t !== 'note' && !(amount > 0)) return formErr(form, 'Enter an amount above zero.');
+      const ts = new Date(fd.get('ts')).getTime();
+      if (!Number.isFinite(ts)) return formErr(form, 'Pick a valid date and time.');
+      Object.assign(e, { type: t === 'withdraw' ? 'save' : t, text, ts,
+        amount: t === 'note' ? null : t === 'withdraw' ? -amount : amount,
+        tags: [...new Set([...text.matchAll(TAG_RE)].map(m => m[1].toLowerCase()))],
+        pinned: t === 'note' && fd.get('pinned') === 'on' });
+      save(); toast('Saved');
+    },
+  });
+  form.dataset.type = kind;
+  form.addEventListener('change', ev => { if (ev.target.name === 'type') form.dataset.type = ev.target.value; });
+  $('[data-del]', form).onclick = () => {
+    const idx = state.entries.indexOf(e);
+    state.entries.splice(idx, 1); dlg.close(); save();
+    toast('Deleted', { action:'Undo', onAction() { state.entries.splice(idx, 0, e); save(); } });
+  };
+}
+
+// Type in what's really in a wallet (for example savings you had before using Daybook).
+// The difference is kept as that wallet's starting amount, so your history stays as it was.
+function walletDialog(key) {
+  const label = key === 'main' ? 'Main' : 'Savings', now = Math.round(wallets()[key] * 100) / 100;
+  openDialog({
+    title: `${label} balance`,
+    body: `<label class="field"><span>What’s in ${label} right now (${cur()})</span><input name="bal" type="number" step="0.01" inputmode="decimal" value="${now}" required></label>
+      <p class="help">Use this to set money you already had, or to fix a balance that doesn’t match.</p>`,
+    onSubmit(fd, form) {
+      const v = parseFloat(fd.get('bal'));
+      if (!Number.isFinite(v)) return formErr(form, 'Enter an amount.');
+      const k = key + 'Start';
+      state.settings[k] = Math.round(((state.settings[k] || 0) + v - now) * 100) / 100;
+      save(); toast(`${label} set to ${money(v)}`);
+    },
+  });
+}
 
 function exportCsv() {
   const cell = v => {
@@ -1713,17 +1148,16 @@ function exportCsv() {
     if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s; // keep spreadsheets from running text as formulas
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const kind = { note:'Note', expense:'Expense', income:'Income', save:'Saving', transfer:'Transfer' };
-  const rows = [['Date', 'Time', 'Type', 'Description', 'Amount', 'Currency', 'Category', 'Account', 'To account', 'Goal', 'Tags']];
+  const rows = [['Date', 'Time', 'Type', 'Description', 'Amount', 'Currency', 'Wallet']];
   for (const e of [...state.entries].sort((a, b) => a.ts - b.ts)) {
-    const d = new Date(e.ts);
-    const amt = e.type === 'note' ? '' : e.type === 'expense' ? -e.amount : e.amount;
-    rows.push([ymd(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`, kind[e.type] || e.type, e.type === 'transfer' ? '' : e.text, amt,
-      e.type === 'note' ? '' : state.settings.currency, e.type === 'expense' ? catById(e.cat).name : '',
-      acctById(e.acct)?.name || '', e.type === 'transfer' ? acctById(e.to)?.name || '' : '', e.type === 'save' ? goalById(e.goal)?.name || '' : '', (e.tags || []).join(' ')]);
+    const d = new Date(e.ts), back = e.type === 'save' && e.amount < 0;
+    const kind = e.type === 'save' ? (back ? 'From Savings' : 'To Savings') : TYPE_META[e.type]?.[1] || e.type;
+    const amt = e.type === 'note' ? '' : e.type === 'expense' ? -e.amount : Math.abs(e.amount);
+    const wallet = { income:'Main', expense:'Main', save: back ? 'Savings → Main' : 'Main → Savings' }[e.type] || '';
+    rows.push([ymd(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`, kind, e.text, amt, e.type === 'note' ? '' : state.settings.currency, wallet]);
   }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type:'text/csv;charset=utf-8' }));
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type:'text/csv;charset=utf-8' }));
   a.download = `daybook-${ymd(new Date())}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -1966,7 +1400,7 @@ const Sync = {
         if (!data) { this.locked = remote; this.setStatus('locked'); return; }
         const merged = mergeStates(state, data);
         if (JSON.stringify(merged) !== JSON.stringify(state)) applyMerged(merged);
-        runRecurring();
+        runSubs();
         if (JSON.stringify(state) !== JSON.stringify(data)) id = await this.upload(id, await encryptState(Backup.keyInfo));
       } else {
         if (!Backup.key) { this.setStatus('nokey'); return; }
@@ -2082,7 +1516,7 @@ async function restoreFromFile(file) {
 function applyRestore(data, when, keyInfo) {
   const n = normalize(data);
   const whenTxt = when ? new Date(when).toLocaleString() : 'an unknown date';
-  if (!confirm(`Restore the backup from ${whenTxt}?\n\nIt has ${n.entries.length} entries and ${n.subs.length} subscriptions. Everything currently in Daybook on this device will be replaced.`)) return;
+  if (!confirm(`Restore the backup from ${whenTxt}?\n\nIt has ${n.entries.length} entries. Everything currently in Daybook on this device will be replaced.`)) return;
   state = n; applyTheme(); save();
   if (keyInfo && !Backup.key) { Backup.adoptKey(keyInfo); toast('Restored. Your backup password is set too — choose a folder to keep backing up.'); }
   else toast('Backup restored');
@@ -2106,34 +1540,17 @@ function eraseDialog() {
 const ACTIONS = {
   'cap-save': capSave,
   'edit': (el) => editEntry(el.dataset.id),
-  'goal-add': () => editGoal(),
-  'goal-edit': (el) => editGoal(el.dataset.id),
-  'goal-move': (el) => moveDialog(el.dataset.id),
+  'wallet': (el) => walletDialog(el.dataset.v),
+  'sub-add': () => editSub(),
+  'sub-edit': (el) => editSub(el.dataset.id),
   'note-save': noteSave,
   'note-list': (el) => addCheckLine(document.getElementById(el.dataset.for)),
   'note-check': (el) => toggleCheck(el.dataset.id, +el.dataset.line),
-  'acct-add': () => editAccount(),
-  'acct-edit': (el) => editAccount(el.dataset.id),
-  'transfer': () => transferDialog(),
-  'debt-add': () => editDebt(),
-  'debt-edit': (el) => editDebt(el.dataset.id),
-  'debt-pay': (el) => payDebt(el.dataset.id),
-  'rec-add': (el) => editRecurring(null, el.dataset.v),
-  'rec-edit': (el) => editRecurring(el.dataset.id),
-  'review-open'(el) { const [y, m] = el.dataset.v.split('-').map(Number); bm = { y, m: m - 1 }; state.settings.reviewSeen = el.dataset.v; save(); location.hash = 'budget'; },
-  'review-dismiss'(el) { state.settings.reviewSeen = el.dataset.v; save(); },
-  'csv': exportCsv,
   'nt-tag'(el) { nt.tag = nt.tag === el.dataset.v ? null : el.dataset.v; render(); },
-
-  'sub-edit': (el) => editSub(el.dataset.id),
   'tl-filter'(el) { tl.filter = el.dataset.v; tl.limit = 150; render(); },
   'tl-tag'(el) { tl.tag = tl.tag === el.dataset.v ? null : el.dataset.v; tl.limit = 150; render(); },
   'tl-more'() { tl.limit += 150; render(); },
-  'month-prev'() { bm = { y: bm.m ? bm.y : bm.y - 1, m: (bm.m + 11) % 12 }; render(); },
-  'month-next'() { bm = { y: bm.m === 11 ? bm.y + 1 : bm.y, m: (bm.m + 1) % 12 }; render(); },
-  'month-now'() { const d = new Date(); bm = { y:d.getFullYear(), m:d.getMonth() }; render(); },
-  'cat-edit': (el) => editCat(el.dataset.id),
-  'cat-add': () => editCat(),
+  'csv': exportCsv,
   'theme'(el) { state.settings.theme = el.dataset.v; applyTheme(); save(); },
   'bk-password': passwordDialog,
   'bk-folder': () => Backup.chooseFolder(),
@@ -2155,17 +1572,13 @@ main.addEventListener('click', ev => {
 });
 main.addEventListener('change', ev => {
   const k = ev.target.dataset.change;
-  if (k === 'cap-cat') { capCat = ev.target.value; updatePreview(); }
-  if (k === 'cap-goal') { capGoal = ev.target.value; updatePreview(); }
-  if (k === 'cap-acct') { capAcct = ev.target.value; updatePreview(); }
   if (k === 'cap-type') { capType = ev.target.value; updatePreview(); }
-  if (k === 'cap-dir') { capDir = ev.target.value; updatePreview(); }
   if (k === 'currency') { state.settings.currency = ev.target.value; save(); }
 });
 main.addEventListener('input', ev => {
   if (ev.target.id === 'cap') {
     draft = ev.target.value;
-    if (!draft.trim()) { capType = null; capCat = null; capGoal = null; capAcct = null; capDir = null; }
+    if (!draft.trim()) capType = null;
     autoGrow(ev.target); updatePreview();
   } else if (ev.target.id === 'note-new') {
     noteDraft = ev.target.value;
@@ -2195,16 +1608,16 @@ window.addEventListener('hashchange', () => route(true));
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { if (Backup.pending) Backup.run(); }
   else if (Sync.st.on) { if (Sync.tokenOk()) Sync.run(); else Sync.maybeSilent(); }
-  if (!document.hidden) autoRecurring();
+  if (!document.hidden) autoSubs();
 });
 window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = normalize(JSON.parse(ev.newValue)); snap = snapshotOf(state); render(); } });
-setInterval(() => { renderChrome(); if (!document.hidden && !dlg.open) autoRecurring(); }, 60000);
+setInterval(() => { renderChrome(); if (!document.hidden && !dlg.open) autoSubs(); }, 60000);
 
 applyTheme();
 Sync.loadToken();
 Sync.handleRedirect();
 route(false);
-autoRecurring();
+autoSubs();
 Backup.init();
 Sync.start();
 // Offline + installable only on the real https site, so local testing never serves stale files.
